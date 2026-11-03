@@ -1,0 +1,5 @@
+0 : nat
+all n:nat =>
+    succ(n) : nat
+verify UNRESOLVED = foo : nat
+# Check mode must not try to enumerate this infinite domain.

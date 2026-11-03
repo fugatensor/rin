@@ -1,0 +1,3 @@
+all 0: nat => succ(0): nat
+# expect-status: 2
+# expect-error: symbolic name

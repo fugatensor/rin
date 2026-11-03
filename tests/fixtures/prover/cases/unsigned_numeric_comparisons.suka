@@ -1,0 +1,17 @@
+0: number
+1: number
+18446744073709551615: number
+all a, b: number =>
+    less(a, b) -> strictly_ordered(a, b)
+    less_equal(a, b) -> ordered(a, b)
+verify ZERO = ordered(0, 0)
+verify DISTINCT = strictly_ordered(0, 18446744073709551615)
+verify EQUAL = ordered(18446744073709551615, 18446744073709551615)
+verify REVERSE = strictly_ordered(1, 0)
+verify STRUCTURAL = different(0, 1)
+# expect-status: 1
+# expect-output: verify ZERO PASS
+# expect-output: verify DISTINCT PASS
+# expect-output: verify EQUAL PASS
+# expect-output: verify REVERSE FAIL
+# expect-output: verify STRUCTURAL PASS

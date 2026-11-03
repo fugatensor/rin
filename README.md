@@ -14,11 +14,11 @@ make
 构建产物：
 
 - `build/suka`：CLI。
-- `build/libsuka.so`：动态链接库。
+- `build/libsuka.so`：执行 `make ffi` 后生成的可选 C ABI 动态库。
 - `include/suka.h`：外部程序使用的 C ABI 头文件。
-- `include/suka/pass.h`：静态 PASS 库的 C++ 接口（使用 CMake 构建）。
+- `include/suka/pass.h`：可直接嵌入的 C++17 头文件证明接口。
 
-Make 构建的 CLI 链接动态库。二进制通过相对运行时路径寻找库，不依赖仓库的绝对位置，也不在程序中写死输入文件路径。CMake 构建的 PASS 静态库自带证明器。无参数运行会显示用法；传入任意 `.suka` 文件即可：
+CLI 直接编译头文件证明核心。传入 `.suka` 文件即可执行：
 
 ```sh
 ./build/suka path/to/file.suka
@@ -91,7 +91,7 @@ verify P5 PASS
 
 ## 外部程序与 FFI
 
-动态库暴露 C ABI；调用方不需要理解 C++ 类型。每次调用返回一个独立的结果句柄，读取完后使用 `suka_result_free` 释放。
+运行 `make ffi` 或设置 CMake 的 `-DSUKA_BUILD_SHARED=ON` 生成动态库；Make 安装使用 `make install-ffi PREFIX=/path/to/prefix`。动态库提供 C ABI，适合跨语言调用。每次调用返回独立的结果句柄，读取完后使用 `suka_result_free` 释放。
 
 | 接口 | 作用 |
 | --- | --- |
@@ -124,25 +124,25 @@ python3 examples/ffi.py .suka/main.suka
 
 ## PASS 库
 
-`Suka::Pass` 提供 `suka::pass::run`，接受调用方编写的 `.suka` 规则、事实和验证目标，并返回证明结果。接口、证明边界及 CMake 接入见 [PASS.md](PASS.md)。
+`Suka::Pass` 是可直接内联的 C++17 头文件库。`Program` 解析一次规则，通过 `check` 接收结构化事实和目标；`run` 用于执行完整 `.suka` 文本。数值项支持 `uint64_t`，`less` / `less_equal` 比较原始值。渐进接入说明见 [PASS.md](PASS.md)。
 
 ## VS Code 与 LSP
 
 [editor/](editor/) 提供 VS Code 插件和独立的 stdio LSP，支持 `.suka` 文件高亮、自动补全和编辑器右上角运行按钮。安装、配置 CLI 路径和插件测试步骤见 [editor/README.md](editor/README.md)。
 
-插件不需要仓库的固定绝对路径。使用远程 WSL 工作区时，插件和 `suka` 应运行在相同环境中，才能直接使用 Linux 动态库和可执行文件。
+使用远程 WSL 工作区时，插件和 `suka` 运行在相同环境中，使用对应的可执行文件。
 
 仓库已提供 `.vscode/settings.json`，从项目根目录打开工作区时会使用 `./build/suka`。插件包位于 `editor/dist/suka-language-0.1.1.vsix`；安装后即可使用补全、高亮和运行按钮。
 
-## 验证与范围
+## 测试
 
 ```sh
 make test
 make check
 ```
 
-测试需要 Python 3；证明器和动态库本身没有 Python 依赖。
+测试使用 Python 3 组织输入与断言。
 
 Python 测试从 `tests/fixtures/` 读取独立的 `.suka` 用例，常规用例的预期结果随源码存放。新增用例与预期注释格式见 [tests/README.md](tests/README.md)。
 
-规则可以生成无限多个项或匿名对象，程序使用资源限制防止无限运行。已证出的目标输出 `PASS`；完整推导后仍未证出的目标输出 `FAIL`；达到推理上限时尚未证明的目标输出 `UNKNOWN`。当前不提供数学归纳法、否定或完整的一阶逻辑定理证明。
+规则可以生成无限多个项或匿名对象，程序使用资源限制防止无限运行。已证出的目标输出 `PASS`；完整推导后仍未证出的目标输出 `FAIL`；达到推理上限时尚未证明的目标输出 `UNKNOWN`。推理规则和资源上限见 [SYNTAX.md](SYNTAX.md#结果与退出码)。

@@ -7,20 +7,16 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 else()
     set(_suka_top_level OFF)
 endif()
-option(SUKA_BUILD_SHARED "Build the C ABI shared library" ${_suka_top_level})
+option(SUKA_BUILD_SHARED "Build the optional C ABI shared library" OFF)
 option(SUKA_BUILD_CLI "Build the suka command line tool" ${_suka_top_level})
 option(SUKA_BUILD_TESTS "Build and run Suka tests" ${_suka_top_level})
 option(SUKA_INSTALL "Install Suka targets and headers" ${_suka_top_level})
-if(SUKA_BUILD_CLI AND NOT SUKA_BUILD_SHARED)
-    message(FATAL_ERROR "SUKA_BUILD_CLI requires SUKA_BUILD_SHARED")
-endif()
 
-add_library(suka_pass STATIC src/pass.cpp src/suka.cpp)
+add_library(suka_pass INTERFACE)
 add_library(Suka::Pass ALIAS suka_pass)
-set_target_properties(suka_pass PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Pass)
-target_compile_features(suka_pass PUBLIC cxx_std_17)
-target_compile_definitions(suka_pass PRIVATE SUKA_BUILDING_LIBRARY)
-target_include_directories(suka_pass PUBLIC
+set_target_properties(suka_pass PROPERTIES EXPORT_NAME Pass)
+target_compile_features(suka_pass INTERFACE cxx_std_17)
+target_include_directories(suka_pass INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
@@ -35,13 +31,9 @@ if(SUKA_BUILD_SHARED)
 endif()
 if(SUKA_BUILD_CLI)
     add_executable(suka main.cpp)
-    target_link_libraries(suka PRIVATE suka_shared)
-    set_target_properties(suka PROPERTIES
-        BUILD_RPATH_USE_ORIGIN TRUE
-        INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
+    target_link_libraries(suka PRIVATE Suka::Pass)
 endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(suka_pass PRIVATE -Wall -Wextra -Wpedantic)
     if(SUKA_BUILD_SHARED)
         target_compile_options(suka_shared PRIVATE -Wall -Wextra -Wpedantic)
     endif()
@@ -57,8 +49,7 @@ if(SUKA_INSTALL)
         INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Suka")
     write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/SukaConfigVersion.cmake"
         VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion)
-    install(TARGETS suka_pass EXPORT SukaTargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(TARGETS suka_pass EXPORT SukaTargets)
     if(SUKA_BUILD_SHARED)
         install(TARGETS suka_shared EXPORT SukaTargets
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -78,14 +69,23 @@ endif()
 
 if(SUKA_BUILD_TESTS)
     enable_testing()
-    add_executable(suka_pass_test tests/cpp/pass.cpp)
-    target_link_libraries(suka_pass_test PRIVATE Suka::Pass)
+    find_package(Threads REQUIRED)
+    add_executable(suka_pass_test tests/cpp/pass.cpp tests/cpp/header_link.cpp)
+    target_compile_definitions(suka_pass_test PRIVATE
+        SUKA_TEST_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/pass")
+    target_link_libraries(suka_pass_test PRIVATE Suka::Pass Threads::Threads)
     add_test(NAME suka-pass COMMAND suka_pass_test)
-    if(SUKA_BUILD_CLI)
-        find_package(Python3 QUIET COMPONENTS Interpreter)
-        if(Python3_Interpreter_FOUND)
+    find_package(Python3 QUIET COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        if(SUKA_BUILD_CLI)
             add_test(NAME prover COMMAND ${Python3_EXECUTABLE}
                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_prover.py $<TARGET_FILE:suka> -v)
+            add_test(NAME cli COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cli.py $<TARGET_FILE:suka> -v)
+        endif()
+        if(SUKA_BUILD_SHARED)
+            add_test(NAME ffi COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_ffi.py $<TARGET_FILE:suka_shared> -v)
         endif()
     endif()
 endif()

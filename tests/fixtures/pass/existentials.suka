@@ -1,0 +1,4 @@
+a: domain
+all x: domain => exists y => link(x, y)
+all x: domain, y: dangerous => link(x, y) -> accepted(x)
+verify EXISTS = exists y => link(a, y)

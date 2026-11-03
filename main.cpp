@@ -1,4 +1,4 @@
-#include "suka.h"
+#include "suka/pass.h"
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
                       << "       suka [--check] --stdin [--base-dir DIRECTORY]\n";
             return 0;
         }
-        if (!positional && argument == "--version") { std::cout << suka_version() << '\n'; return 0; }
+        if (!positional && argument == "--version") { std::cout << suka::version << '\n'; return 0; }
         if (!positional && argument == "--check") check = true;
         else if (!positional && argument == "--stdin") standard_input = true;
         else if (!positional && argument == "--base-dir") {
@@ -30,16 +30,22 @@ int main(int argc, char* argv[]) {
     }
     if ((standard_input && !path.empty()) || (!standard_input && path.empty()) ||
         (!standard_input && !base_directory.empty())) return usage();
-    suka_result* result;
-    if (standard_input) {
-        const std::string source{std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>()};
-        result = check ? suka_check_source(source.c_str(), base_directory.c_str())
-                       : suka_run_source(source.c_str(), base_directory.c_str());
-    } else result = check ? suka_check_file(path.c_str()) : suka_run_file(path.c_str());
-    if (!result) { std::cerr << "suka: out of memory\n"; return 2; }
-    std::cout << suka_result_output(result);
-    std::cerr << suka_result_error(result);
-    const int status = suka_result_status(result);
-    suka_result_free(result);
-    return status;
+    suka::pass::detail::Result result{0, {}, {}};
+    try {
+        using namespace suka::pass::detail;
+        Program program;
+        if (standard_input) {
+            const std::string source{std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>()};
+            program = parse(load_source(source, base_directory.c_str()));
+        } else {
+            Imports imports;
+            program = parse(load_file(std::filesystem::u8path(path), imports));
+        }
+        if (!check) result = evaluate(program, program.rules);
+    } catch (const std::exception& error) {
+        result = {2, {}, std::string(error.what()) + "\n"};
+    }
+    std::cout << result.output;
+    std::cerr << result.error;
+    return result.status;
 }

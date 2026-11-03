@@ -1,0 +1,2 @@
+all x: item, a: value, b: value =>
+    bounds(x, a, b) & less_equal(a, b) -> ordered(x)

@@ -1,0 +1,5 @@
+first: node
+second: node
+all a: node, b: node =>
+    different(a, b) -> distinct(a, b)
+verify PAIR = distinct(first, second)

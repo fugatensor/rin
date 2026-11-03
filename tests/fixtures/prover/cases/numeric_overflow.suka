@@ -1,0 +1,3 @@
+verify TOO_LARGE = less(0, 18446744073709551616)
+# expect-status: 2
+# expect-error: uint64

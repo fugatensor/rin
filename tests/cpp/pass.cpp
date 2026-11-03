@@ -1,59 +1,90 @@
 #include "suka/pass.h"
 
+#include <array>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
-#include <string>
-#include <string_view>
+#include <iterator>
+#include <limits>
+#include <thread>
+
+suka::pass::Decision runFromOtherTranslationUnit(std::string_view source);
 
 namespace {
 void require(bool condition, const std::string& message) {
     if (!condition) { std::cerr << message << '\n'; std::exit(1); }
 }
+
+std::string source(const char* name) {
+    std::ifstream file(std::string(SUKA_TEST_FIXTURES) + "/" + name + ".suka");
+    require(bool(file), "missing PASS fixture");
+    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+}
 }
 
 int main() {
-    using suka::pass::Verdict;
-    using suka::pass::run;
-
-    const auto proven = run(
-        "first: node\n"
-        "second: node\n"
-        "all a: node, b: node =>\n"
-        "    different(a, b) -> distinct(a, b)\n"
-        "verify PAIR = distinct(first, second)\n");
+    using namespace suka::pass;
+    const auto provenSource = source("proven");
+    const auto proven = runFromOtherTranslationUnit(provenSource);
     require(proven.verdict == Verdict::Pass &&
                 proven.explanation.find("verify PAIR PASS") != std::string::npos,
             "generic rule proof should pass its named obligation");
-
-    const auto unproved = run("first: node\nverify MISSING = distinct(first, second)\n");
-    require(unproved.verdict == Verdict::Fail &&
-                unproved.explanation.find("verify MISSING FAIL") != std::string::npos,
+    require(run(source("unproved")).verdict == Verdict::Fail,
             "finite rules should report an unproved obligation");
-
-    const auto limited = run(
-        "seed: item\n"
-        "all x: item => succ(x): item\n"
-        "verify OPEN = missing(seed)\n");
-    require(limited.verdict == Verdict::Unknown &&
-                limited.explanation.find("verify OPEN UNKNOWN") != std::string::npos,
+    require(run(source("limited")).verdict == Verdict::Unknown,
             "unbounded derivation should remain unknown at the inference limit");
-
-    const auto malformed = run("verify BAD = broken(\n");
-    require(malformed.verdict == Verdict::Error,
+    const auto malformedSource = source("malformed");
+    require(run(malformedSource).verdict == Verdict::Error,
             "malformed proof source should report an error");
-
-    std::string nul_source = "verify GOOD = different(a,b)\n";
-    nul_source.push_back('\0');
-    nul_source += "verify BAD = broken(\n";
-    const auto truncated = run(std::string_view(nul_source.data(), nul_source.size()));
-    require(truncated.verdict == Verdict::Error &&
-                truncated.explanation.find("NUL") != std::string::npos,
+    const auto truncated = run(provenSource + '\0' + malformedSource);
+    require(truncated.verdict == Verdict::Error && truncated.explanation.find("NUL") != std::string::npos,
             "embedded NUL must not hide an unparsed obligation");
-
-    const std::string wrapped = "verify GOOD = different(a,b)\nverify BAD = broken(\n";
-    const auto slice = run(std::string_view(wrapped.data(), wrapped.find("verify BAD")));
-    require(slice.verdict == Verdict::Pass,
+    const auto wrapped = provenSource + malformedSource;
+    require(run(std::string_view(wrapped.data(), provenSource.size())).verdict == Verdict::Pass,
             "string_view length must define the complete proof source");
 
-    std::cout << "SUKA generic proof API passed\n";
+    const Program comparisons("");
+    const std::array<std::uint64_t, 5> values{0, 1, 2, (std::uint64_t{1} << 63),
+                                            std::numeric_limits<std::uint64_t>::max()};
+    for (auto left : values)
+        for (auto right : values)
+            for (const auto* predicate : {"less", "less_equal"}) {
+                const bool expected = std::string_view(predicate) == "less" ? left < right : left <= right;
+                const auto decision = comparisons.check({}, {{{predicate, {Term{left}, Term{right}}}, "ORDER"}});
+                require(decision.verdict == (expected ? Verdict::Pass : Verdict::Fail),
+                        "unsigned comparisons must agree with native uint64 ordering");
+            }
+    require(comparisons.check({{"less", {Term{std::uint64_t{2}}, Term{std::uint64_t{1}}}}}, {}).verdict == Verdict::Error,
+            "callers cannot assert a builtin relation");
+
+    const Program rules(source("bounds"));
+    const auto checkBounds = [&] {
+        for (auto lower : values)
+            for (auto upper : values) {
+                // Numeric identities can occur in separate relation domains.
+                const std::vector<Fact> facts{
+                    {"item", {Term{lower}}}, {"value", {Term{lower}}}, {"value", {Term{upper}}},
+                    {"bounds", {Term{lower}, Term{lower}, Term{upper}}}};
+                const auto decision = rules.check(facts, {{{"ordered", {Term{lower}}}, "BOUND"}});
+                require(decision.verdict == (lower <= upper ? Verdict::Pass : Verdict::Fail),
+                        "compiled rule must derive each fresh fact set independently");
+                require(decision.verdict != Verdict::Pass || decision.explanation.empty(),
+                        "successful typed proof should avoid formatted output");
+            }
+    };
+    std::thread first(checkBounds), second(checkBounds);
+    first.join();
+    second.join();
+    require(rules.check({}, {{{"ordered", {Term{std::uint64_t{0}}}}, "ISOLATED"}}).verdict == Verdict::Fail,
+            "completed checks must not retain inferred facts");
+    const Program existentials(source("existentials"));
+    require(existentials.check(
+                {{"dangerous", {Term{":w0"}}}},
+                {{{"accepted", {Term{"a"}}}, "NO_CAPTURE"}}).verdict == Verdict::Fail,
+            "fresh existential witnesses must be distinct from caller-provided symbols");
+    bool malformedRules = false;
+    try { const Program invalid(malformedSource); }
+    catch (const std::runtime_error&) { malformedRules = true; }
+    require(malformedRules, "invalid fixed rules must fail during compilation");
+    std::cout << "SUKA header-only proof API passed\n";
 }
