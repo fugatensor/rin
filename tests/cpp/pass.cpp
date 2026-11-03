@@ -58,25 +58,47 @@ int main() {
             "callers cannot assert a builtin relation");
 
     const Program rules(source("bounds"));
-    const auto checkBounds = [&] {
+    const auto checkBounds = [&](const Program& activeRules) {
         for (auto lower : values)
             for (auto upper : values) {
                 // Numeric identities can occur in separate relation domains.
                 const std::vector<Fact> facts{
                     {"item", {Term{lower}}}, {"value", {Term{lower}}}, {"value", {Term{upper}}},
                     {"bounds", {Term{lower}, Term{lower}, Term{upper}}}};
-                const auto decision = rules.check(facts, {{{"ordered", {Term{lower}}}, "BOUND"}});
+                const auto decision = activeRules.check(facts, {{{"ordered", {Term{lower}}}, "BOUND"}});
                 require(decision.verdict == (lower <= upper ? Verdict::Pass : Verdict::Fail),
                         "compiled rule must derive each fresh fact set independently");
                 require(decision.verdict != Verdict::Pass || decision.explanation.empty(),
                         "successful typed proof should avoid formatted output");
             }
     };
-    std::thread first(checkBounds), second(checkBounds);
+    std::thread first([&] { checkBounds(rules); }), second([&] { checkBounds(rules); });
     first.join();
     second.join();
     require(rules.check({}, {{{"ordered", {Term{std::uint64_t{0}}}}, "ISOLATED"}}).verdict == Verdict::Fail,
             "completed checks must not retain inferred facts");
+    std::array<Program, 4> retained{Program(""), Program(""), Program(""), Program("")};
+    {
+        Program original(source("bounds") + source("existentials"));
+        retained[0] = original;
+    }
+    {
+        Program original(source("bounds") + source("existentials"));
+        retained[1] = Program(original);
+    }
+    {
+        Program original(source("bounds") + source("existentials"));
+        retained[2] = std::move(original);
+    }
+    {
+        Program movable(source("bounds") + source("existentials"));
+        retained[3] = Program(std::move(movable));
+    }
+    for (const auto& retainedRules : retained) checkBounds(retainedRules);
+    std::thread copiedFirst([&] { checkBounds(retained[0]); });
+    std::thread copiedSecond([&] { checkBounds(retained[1]); });
+    copiedFirst.join();
+    copiedSecond.join();
     const Program existentials(source("existentials"));
     require(existentials.check(
                 {{"dangerous", {Term{":w0"}}}},

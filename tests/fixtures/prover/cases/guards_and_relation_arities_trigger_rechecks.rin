@@ -1,0 +1,16 @@
+a: seed
+
+all x: ready => accepted(x)
+all x: seed => stage(x)
+all x: stage => ready(x)
+all x: ready => stage(x, x)
+all x: seed => stage() -> wrong_arity(x)
+
+verify GUARDED = accepted(a)
+verify RECURSIVE = stage(a, a)
+verify NO_ZERO_ARITY = wrong_arity(a)
+
+# expect-status: 1
+# expect-output: verify GUARDED PASS
+# expect-output: verify RECURSIVE PASS
+# expect-output: verify NO_ZERO_ARITY FAIL

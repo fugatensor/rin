@@ -1,0 +1,26 @@
+a: domain
+b: domain
+c: domain
+
+nested(pair(a, b), c)
+nested(pair(b, a), c)
+nested(pair(b, c), c)
+nested(pair(a), a)
+selected(b)
+selected()
+
+all x, y: domain => nested(pair(x, y), y) -> matching(x, y)
+all x, y: domain => selected(x) & nested(pair(x, y), y) -> retained(x, y)
+
+verify FRESH = matching(b, c)
+verify EXISTING = retained(b, c)
+verify FIRST_REJECTED = matching(a, b)
+verify SECOND_REJECTED = retained(b, a)
+verify OTHER_ARITY = matching(a, a)
+
+# expect-status: 1
+# expect-output: verify FRESH PASS
+# expect-output: verify EXISTING PASS
+# expect-output: verify FIRST_REJECTED FAIL
+# expect-output: verify SECOND_REJECTED FAIL
+# expect-output: verify OTHER_ARITY FAIL

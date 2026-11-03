@@ -118,18 +118,33 @@ inline bool is_builtin(const std::string& predicate) {
 }
 
 using Variables = std::set<std::string>;
-using Binding = std::map<std::string, Term>;
+using Binding = std::vector<const Term*>;
+
+constexpr std::size_t no_slot = std::size_t(-1);
+struct PatternNode {
+    std::size_t slot = no_slot, end = 0;
+    bool ground = true, indexed = false;
+};
+// Preorder metadata refers to the owning atom by offsets, so copying a compiled
+// Program preserves its patterns. Variable slots follow declaration-name order.
+struct Pattern {
+    std::vector<PatternNode> nodes;
+    std::vector<std::size_t> arguments, introduced;
+};
 
 struct Rule {
     std::vector<Atom> premises;
     Atom conclusion;
     Variables variables, existentials;
     Location line;
+    std::vector<Pattern> patterns = {};
+    Pattern result = {};
 };
 struct Query {
     Atom atom;
     std::string name;
     Variables variables;
+    Pattern pattern = {};
 };
 struct Program {
     std::set<Atom> facts;
@@ -324,8 +339,77 @@ inline std::vector<Line> load_source(std::string_view text, const char* base_dir
     return expand_imports(read_lines(input, "<source>"), directory, imports);
 }
 
-inline bool is_variable(const Term& term, const Variables& variables) {
-    return !term.number && term.arguments.empty() && variables.count(term.name);
+inline std::size_t node_count(const Term& term, std::size_t limit) {
+    std::size_t count = 1;
+    if (!limit) return count;
+    for (const auto& argument : term.arguments) {
+        count += node_count(argument, limit - count);
+        if (count > limit) return limit + 1;
+    }
+    return count;
+}
+
+using Slots = std::vector<std::pair<std::string_view, std::size_t>>;
+
+inline Pattern compile_pattern(const Atom& atom, const Slots& slots, std::vector<bool>& bound) {
+    Pattern result;
+    std::size_t nodes = 0;
+    for (const auto& term : atom.arguments) nodes += node_count(term, std::size_t(-1));
+    result.nodes.reserve(nodes);
+    result.arguments.reserve(atom.arguments.size());
+    result.introduced.reserve(std::min(atom.arguments.size(),
+        std::size_t(std::count(bound.begin(), bound.end(), false))));
+    auto compile = [&](const Term& term, const auto& self) -> std::size_t {
+        const auto position = result.nodes.size();
+        result.nodes.push_back({});
+        if (!term.number && term.arguments.empty()) {
+            const auto variable = std::lower_bound(slots.begin(), slots.end(), std::string_view(term.name),
+                [](const auto& entry, std::string_view name) { return entry.first < name; });
+            if (variable != slots.end() && variable->first == term.name) {
+                const auto slot = variable->second;
+                result.nodes[position].slot = slot;
+                result.nodes[position].ground = false;
+                if (!bound[slot]) result.introduced.push_back(slot);
+                bound[slot] = true;
+            }
+        }
+        for (const auto& child : term.arguments) {
+            const auto child_position = self(child, self);
+            result.nodes[position].ground = result.nodes[position].ground && result.nodes[child_position].ground;
+        }
+        result.nodes[position].end = result.nodes.size();
+        return position;
+    };
+    for (const auto& term : atom.arguments) result.arguments.push_back(compile(term, compile));
+    for (auto position : result.arguments) {
+        auto& node = result.nodes[position];
+        node.indexed = node.ground || (node.slot != no_slot &&
+            std::find(result.introduced.begin(), result.introduced.end(), node.slot) == result.introduced.end());
+    }
+    return result;
+}
+
+inline void compile_rule(Rule& rule) {
+    Slots slots;
+    slots.reserve(rule.variables.size() + rule.existentials.size());
+    for (const auto& variable : rule.variables) slots.emplace_back(variable, slots.size());
+    std::vector<bool> bound(slots.size());
+    rule.patterns.reserve(rule.premises.size());
+    for (const auto& premise : rule.premises)
+        rule.patterns.push_back(compile_pattern(premise, slots, bound));
+    for (const auto& variable : rule.existentials) slots.emplace_back(variable, slots.size());
+    std::sort(slots.begin(), slots.end());
+    bound.resize(slots.size(), true);
+    rule.result = compile_pattern(rule.conclusion, slots, bound);
+}
+
+inline void compile_query(Query& query) {
+    if (query.variables.empty()) return;
+    Slots slots;
+    slots.reserve(query.variables.size());
+    for (const auto& variable : query.variables) slots.emplace_back(variable, slots.size());
+    std::vector<bool> bound(slots.size());
+    query.pattern = compile_pattern(query.atom, slots, bound);
 }
 
 inline Program parse(const std::vector<Line>& lines) {
@@ -381,6 +465,7 @@ inline Program parse(const std::vector<Line>& lines) {
                 // Relational premises and type guards establish those bindings.
                 std::stable_partition(rule.premises.begin(), rule.premises.end(),
                     [](const Atom& premise) { return !is_builtin(premise.predicate); });
+                compile_rule(rule);
                 program.rules.push_back(std::move(rule));
             };
             if (!cursor.done()) {
@@ -410,6 +495,7 @@ inline Program parse(const std::vector<Line>& lines) {
             if (is_builtin(query.atom.predicate) &&
                 (query.atom.arguments.size() != 2 || !query.variables.empty()))
                 fail(line.location, query.atom.predicate + " verification requires exactly two ground terms");
+            compile_query(query);
             program.queries.push_back(std::move(query));
         } else {
             auto fact = cursor.atom();
@@ -423,54 +509,72 @@ inline Program parse(const std::vector<Line>& lines) {
     return program;
 }
 
-inline bool match_term(const Term& pattern, const Term& value, const Variables& variables, Binding& binding) {
-    if (is_variable(pattern, variables)) {
-        const auto inserted = binding.emplace(pattern.name, value);
-        return inserted.second || inserted.first->second == value;
+inline bool match_term(const Term& term, const Pattern& pattern, std::size_t position,
+                       const Term& value, Binding& binding) {
+    const auto& node = pattern.nodes[position];
+    if (node.slot != no_slot) {
+        auto& bound = binding[node.slot];
+        if (bound) return *bound == value;
+        bound = &value;
+        return true;
     }
-    if (!pattern.same_head(value) || pattern.arguments.size() != value.arguments.size()) return false;
-    for (std::size_t i = 0; i < pattern.arguments.size(); ++i)
-        if (!match_term(pattern.arguments[i], value.arguments[i], variables, binding)) return false;
+    if (node.ground) return term == value;
+    if (!term.same_head(value) || term.arguments.size() != value.arguments.size()) return false;
+    auto child = position + 1;
+    for (std::size_t i = 0; i < term.arguments.size(); ++i) {
+        if (!match_term(term.arguments[i], pattern, child, value.arguments[i], binding)) return false;
+        child = pattern.nodes[child].end;
+    }
     return true;
 }
 
-inline bool match(const Atom& pattern, const Atom& fact, const Variables& variables, Binding& binding) {
-    if (pattern.predicate != fact.predicate || pattern.arguments.size() != fact.arguments.size()) return false;
-    for (std::size_t i = 0; i < pattern.arguments.size(); ++i)
-        if (!match_term(pattern.arguments[i], fact.arguments[i], variables, binding)) return false;
+// The relation index already establishes the predicate and arity.
+inline bool match(const Atom& atom, const Pattern& pattern, const Atom& fact, Binding& binding) {
+    for (std::size_t i = 0; i < atom.arguments.size(); ++i)
+        if (!match_term(atom.arguments[i], pattern, pattern.arguments[i], fact.arguments[i], binding)) return false;
     return true;
 }
 
 struct ProofLimit {};
 
-inline std::size_t node_count(const Term& term, std::size_t limit) {
-    std::size_t count = 1;
-    if (!limit) return count;
-    for (const auto& argument : term.arguments) {
-        count += node_count(argument, limit - count);
-        if (count > limit) return limit + 1;
-    }
-    return count;
-}
-
-inline Term substitute(const Term& term, const Binding& binding, std::size_t& budget) {
-    if (term.number || term.anonymous()) {
-        if (!budget) throw ProofLimit{};
-        --budget;
-        return term;
-    }
-    const auto value = binding.find(term.name);
-    if (term.arguments.empty() && value != binding.end()) {
-        const auto count = node_count(value->second, budget);
+inline Term substitute(const Term& term, const Pattern& pattern, std::size_t position,
+                       const Binding& binding, std::size_t& budget) {
+    const auto& node = pattern.nodes[position];
+    if (node.slot != no_slot || node.ground) {
+        const auto& value = node.slot != no_slot ? *binding[node.slot] : term;
+        const auto count = node.slot != no_slot ? node_count(value, budget) : node.end - position;
         if (count > budget) throw ProofLimit{};
         budget -= count;
-        return value->second;
+        return value;
     }
     if (!budget) throw ProofLimit{};
     --budget;
     Term result{term.name, {}};
-    for (const auto& argument : term.arguments) result.arguments.push_back(substitute(argument, binding, budget));
+    result.arguments.reserve(term.arguments.size());
+    auto child = position + 1;
+    for (const auto& argument : term.arguments) {
+        result.arguments.push_back(substitute(argument, pattern, child, binding, budget));
+        child = pattern.nodes[child].end;
+    }
     return result;
+}
+
+inline const Term& comparison_term(const Atom& atom, const Pattern& pattern, std::size_t argument,
+                                   const Binding& binding, std::optional<Term>& temporary) {
+    const auto position = pattern.arguments[argument];
+    const auto& node = pattern.nodes[position];
+    if (node.slot != no_slot) {
+        const auto& value = *binding[node.slot];
+        if (node_count(value, max_term_nodes) > max_term_nodes) throw ProofLimit{};
+        return value;
+    }
+    if (node.ground) {
+        if (node.end - position > max_term_nodes) throw ProofLimit{};
+        return atom.arguments[argument];
+    }
+    auto budget = max_term_nodes;
+    temporary = substitute(atom.arguments[argument], pattern, position, binding, budget);
+    return *temporary;
 }
 
 inline std::size_t depth(const Term& term) {
@@ -485,47 +589,58 @@ inline bool compare(const std::string& predicate, const Term& left, const Term& 
     return predicate == "less" ? *left.number < *right.number : *left.number <= *right.number;
 }
 
-inline bool is_proven(const Query& query, const Program& program);
-
-// Stable fact nodes let each relation and argument value keep a compact row index.
+// Fact terms remain owned by the immutable nodes of Program::facts. Column keys
+// and join bindings borrow those terms for this proof only.
 class FactIndex {
+public:
     using Rows = std::vector<const Atom*>;
+    struct TermLess {
+        bool operator()(const Term* left, const Term* right) const { return *left < *right; }
+    };
     struct Relation {
         Rows rows;
-        std::vector<std::map<Term, Rows>> columns;
+        std::vector<std::map<const Term*, Rows, TermLess>> columns;
+        std::vector<std::size_t> indexed;
     };
+
+private:
     std::map<std::pair<std::string, std::size_t>, Relation> relations_;
 
-    static const Term* bound(const Term& term, const Variables& variables, const Binding& binding) {
-        if (is_variable(term, variables)) {
-            const auto value = binding.find(term.name);
-            return value == binding.end() ? nullptr : &value->second;
-        }
-        for (const auto& argument : term.arguments)
-            // A constructed pattern with variables still uses ordinary matching.
-            if (bound(argument, variables, {}) == nullptr) return nullptr;
-        return &term;
-    }
-
 public:
-    void add(const Atom& fact) {
-        auto& relation = relations_[{fact.predicate, fact.arguments.size()}];
-        relation.rows.push_back(&fact);
-        relation.columns.resize(fact.arguments.size());
-        for (std::size_t i = 0; i < fact.arguments.size(); ++i)
-            relation.columns[i][fact.arguments[i]].push_back(&fact);
+    void require(const Atom& atom, const Pattern& pattern) {
+        auto& relation = relations_[{atom.predicate, atom.arguments.size()}];
+        for (std::size_t i = 0; i < atom.arguments.size(); ++i) {
+            if (!pattern.nodes[pattern.arguments[i]].indexed) continue;
+            if (relation.columns.empty()) relation.columns.resize(atom.arguments.size());
+            if (std::find(relation.indexed.begin(), relation.indexed.end(), i) == relation.indexed.end())
+                relation.indexed.push_back(i);
+        }
     }
 
-    const Rows& candidates(const Atom& pattern, const Variables& variables, const Binding& binding) const {
+    const Relation& relation(const Atom& atom) const {
+        return relations_.find({atom.predicate, atom.arguments.size()})->second;
+    }
+
+    void add(const Atom& fact) {
+        const auto found = relations_.find({fact.predicate, fact.arguments.size()});
+        if (found == relations_.end()) return;
+        auto& indexed = found->second;
+        indexed.rows.push_back(&fact);
+        for (auto i : indexed.indexed)
+            indexed.columns[i][&fact.arguments[i]].push_back(&fact);
+    }
+
+    static const Rows& candidates(const Atom& atom, const Pattern& pattern,
+                                  const Binding& binding, const Relation& relation) {
         static const Rows empty;
-        const auto found = relations_.find({pattern.predicate, pattern.arguments.size()});
-        if (found == relations_.end()) return empty;
-        const auto& relation = found->second;
         const Rows* rows = &relation.rows;
-        for (std::size_t i = 0; i < pattern.arguments.size(); ++i) {
-            const auto* value = bound(pattern.arguments[i], variables, binding);
-            if (!value) continue;
-            const auto column = relation.columns[i].find(*value);
+        if (rows->empty()) return empty;
+        for (std::size_t i = 0; i < atom.arguments.size(); ++i) {
+            const auto& node = pattern.nodes[pattern.arguments[i]];
+            if (!node.indexed) continue;
+            const auto* value = node.slot != no_slot ? binding[node.slot]
+                                                     : &atom.arguments[i];
+            const auto column = relation.columns[i].find(value);
             if (column == relation.columns[i].end()) return empty;
             if (column->second.size() < rows->size()) rows = &column->second;
         }
@@ -533,67 +648,131 @@ public:
     }
 };
 
-inline bool prove(Program& program, const std::vector<Rule>& rules) {
-    FactIndex facts;
-    for (const auto& fact : program.facts) facts.add(fact);
-    std::vector<std::set<Binding>> fired(rules.size());
+inline bool is_proven(const Query& query, const Program& program, FactIndex& facts) {
+    if (is_builtin(query.atom.predicate))
+        return compare(query.atom.predicate, query.atom.arguments[0], query.atom.arguments[1]);
+    if (query.variables.empty()) return program.facts.count(query.atom) != 0;
+    Binding binding(query.variables.size());
+    for (const auto* fact : facts.candidates(query.atom, query.pattern, binding, facts.relation(query.atom))) {
+        if (match(query.atom, query.pattern, *fact, binding)) return true;
+        std::fill(binding.begin(), binding.end(), nullptr);
+    }
+    return false;
+}
+
+struct BindingLess {
+    bool operator()(const Binding& left, const Binding& right) const {
+        for (std::size_t i = 0; i < left.size(); ++i) {
+            const auto order = left[i]->compare(*right[i]);
+            if (order) return order < 0;
+        }
+        return false;
+    }
+};
+
+inline bool prove(Program& program, const std::vector<Rule>& rules, FactIndex& facts,
+                  std::vector<bool>& proven) {
+    struct RuleState {
+        std::vector<const FactIndex::Relation*> relations;
+        std::vector<std::size_t> sizes;
+        std::set<Binding, BindingLess> fired;
+        bool initialized = false;
+    };
+    std::vector<RuleState> states(rules.size());
+    for (std::size_t i = 0; i < rules.size(); ++i)
+        for (const auto& premise : rules[i].premises) {
+            states[i].relations.push_back(is_builtin(premise.predicate) ? nullptr : &facts.relation(premise));
+            states[i].sizes.push_back(0);
+        }
     std::size_t next_witness = 0;
     for (std::size_t round = 0; round < max_rounds; ++round) {
-        // All requested proofs are already established; no need to enumerate successors.
-        if (std::all_of(program.queries.begin(), program.queries.end(),
-                        [&](const Query& query) { return is_proven(query, program); })) return false;
+        bool complete = true;
+        for (std::size_t i = 0; i < program.queries.size(); ++i) {
+            if (!proven[i]) proven[i] = is_proven(program.queries[i], program, facts);
+            if (!proven[i]) { complete = false; break; }
+        }
+        if (complete) return false;
         bool changed = false;
         for (std::size_t index = 0; index < rules.size(); ++index) {
             const auto& rule = rules[index];
-            std::vector<Binding> bindings(1);
-            for (const auto& premise : rule.premises) {
+            auto& state = states[index];
+            bool dirty = !state.initialized;
+            for (std::size_t i = 0; i < state.relations.size(); ++i)
+                if (state.relations[i] && state.sizes[i] != state.relations[i]->rows.size()) dirty = true;
+            if (!dirty) continue;
+            state.initialized = true;
+            // Capture versions before deriving conclusions, including recursive
+            // rules whose own output will make an input relation grow.
+            for (std::size_t i = 0; i < state.relations.size(); ++i)
+                if (state.relations[i]) state.sizes[i] = state.relations[i]->rows.size();
+            std::vector<Binding> bindings(1, Binding(rule.variables.size()));
+            for (std::size_t p = 0; p < rule.premises.size(); ++p) {
+                const auto& premise = rule.premises[p];
+                const auto& pattern = rule.patterns[p];
                 std::vector<Binding> next;
+                next.reserve(bindings.size());
                 if (is_builtin(premise.predicate)) {
                     for (auto& binding : bindings) {
-                        if (binding.size() != rule.variables.size()) return false;
-                        std::size_t left_budget = max_term_nodes, right_budget = max_term_nodes;
+                        std::optional<Term> left, right;
                         try {
                             if (compare(premise.predicate,
-                                    substitute(premise.arguments[0], binding, left_budget),
-                                    substitute(premise.arguments[1], binding, right_budget)))
+                                    comparison_term(premise, pattern, 0, binding, left),
+                                    comparison_term(premise, pattern, 1, binding, right)))
                                 next.push_back(std::move(binding));
                         } catch (const ProofLimit&) { return false; }
                     }
-                    bindings = std::move(next);
-                    if (bindings.empty()) break;
-                    continue;
-                }
-                for (const auto& binding : bindings) {
-                    for (const auto* fact : facts.candidates(premise, rule.variables, binding)) {
-                        auto candidate = binding;
-                        if (match(premise, *fact, rule.variables, candidate)) {
-                            if (next.size() >= max_bindings) return false;
-                            next.push_back(std::move(candidate));
+                } else {
+                    for (auto& binding : bindings) {
+                        for (const auto* fact : facts.candidates(premise, pattern, binding, *state.relations[p])) {
+                            const bool matched = match(premise, pattern, *fact, binding);
+                            if (matched) {
+                                if (next.size() >= max_bindings) return false;
+                                if (pattern.introduced.empty()) {
+                                    // A fully bound atom has at most one matching
+                                    // fact; guards can retain the existing row.
+                                    next.push_back(std::move(binding));
+                                    break;
+                                }
+                                next.push_back(binding);
+                            }
+                            for (auto slot : pattern.introduced) binding[slot] = nullptr;
                         }
                     }
                 }
                 bindings = std::move(next);
                 if (bindings.empty()) break;
             }
+            // Joins finish before insertion, so relation/column row vectors are
+            // never extended while a candidate range is being traversed.
             for (const auto& binding : bindings) {
-                auto values = binding;
+                const Binding* arguments = &binding;
+                Binding values;
+                std::vector<Term> witnesses;
                 if (!rule.existentials.empty()) {
-                    if (!fired[index].insert(binding).second) continue;
-                    for (const auto& variable : rule.existentials)
-                        values.emplace(variable, Witness::make(next_witness++));
+                    if (!state.fired.insert(binding).second) continue;
+                    values = binding;
+                    witnesses.reserve(rule.existentials.size());
+                    for (std::size_t i = 0; i < rule.existentials.size(); ++i) {
+                        witnesses.push_back(Witness::make(next_witness++));
+                        values.push_back(&witnesses.back());
+                    }
+                    arguments = &values;
                 }
                 Atom conclusion{rule.conclusion.predicate, {}};
+                conclusion.arguments.reserve(rule.conclusion.arguments.size());
                 std::size_t budget = max_term_nodes;
                 try {
-                    for (const auto& term : rule.conclusion.arguments) {
-                        auto value = substitute(term, values, budget);
+                    for (std::size_t i = 0; i < rule.conclusion.arguments.size(); ++i) {
+                        auto value = substitute(rule.conclusion.arguments[i], rule.result,
+                                                rule.result.arguments[i], *arguments, budget);
                         if (depth(value) > max_depth) return false;
                         conclusion.arguments.push_back(std::move(value));
                     }
                 } catch (const ProofLimit&) { return false; }
-                if (!program.facts.count(conclusion)) {
+                const auto position = program.facts.lower_bound(conclusion);
+                if (position == program.facts.end() || conclusion < *position) {
                     if (program.facts.size() >= max_facts) return false;
-                    facts.add(*program.facts.insert(std::move(conclusion)).first);
+                    facts.add(*program.facts.insert(position, std::move(conclusion)));
                     changed = true;
                 }
             }
@@ -603,23 +782,21 @@ inline bool prove(Program& program, const std::vector<Rule>& rules) {
     return false;
 }
 
-inline bool is_proven(const Query& query, const Program& program) {
-    if (is_builtin(query.atom.predicate))
-        return compare(query.atom.predicate, query.atom.arguments[0], query.atom.arguments[1]);
-    if (query.variables.empty()) return program.facts.count(query.atom) != 0;
-    for (const auto& fact : program.facts) {
-        Binding binding;
-        if (match(query.atom, fact, query.variables, binding)) return true;
-    }
-    return false;
-}
-
 inline Result evaluate(Program& program, const std::vector<Rule>& rules, bool explain_success = true) {
-    const bool saturated = prove(program, rules);
+    FactIndex facts;
+    for (const auto& rule : rules)
+        for (std::size_t p = 0; p < rule.premises.size(); ++p)
+            if (!is_builtin(rule.premises[p].predicate)) facts.require(rule.premises[p], rule.patterns[p]);
+    for (const auto& query : program.queries)
+        if (!query.variables.empty()) facts.require(query.atom, query.pattern);
+    for (const auto& fact : program.facts) facts.add(fact);
+    std::vector<bool> proven(program.queries.size());
+    const bool saturated = prove(program, rules, facts, proven);
     bool failed = false, unknown = false;
     std::ostringstream output;
-    for (const auto& query : program.queries) {
-        const bool found = is_proven(query, program);
+    for (std::size_t i = 0; i < program.queries.size(); ++i) {
+        const auto& query = program.queries[i];
+        const bool found = proven[i] || is_proven(query, program, facts);
         const bool incomplete = !is_builtin(query.atom.predicate) && !saturated;
         if (!found || explain_success)
             output << "verify " << query.name << (found ? " PASS\n" : incomplete ? " UNKNOWN\n" : " FAIL\n");

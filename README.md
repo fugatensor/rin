@@ -124,7 +124,7 @@ python3 examples/ffi.py .rin/main.rin
 
 ## PASS 库
 
-`Rin::Pass` 是可直接内联的 C++17 头文件库。`Program` 解析一次规则，通过 `check` 接收结构化事实和目标；`run` 用于执行完整 `.rin` 文本。数值项支持 `uint64_t`，`less` / `less_equal` 比较原始值。渐进接入说明见 [PASS.md](PASS.md)。
+`Rin::Pass` 是可直接内联的 C++17 头文件库。`Program` 一次解析规则并编译匹配布局，通过 `check` 接收结构化事实和目标；`run` 用于执行完整 `.rin` 文本。数值项支持 `uint64_t`，`less` / `less_equal` 比较原始值。渐进接入说明见 [PASS.md](PASS.md)，执行速度与内存测量见 [性能报告](PERFORMANCE.md)。
 
 ## VS Code 与 LSP
 
