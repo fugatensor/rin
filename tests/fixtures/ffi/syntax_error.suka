@@ -1,0 +1,4 @@
+Alice : human
+verify BROKEN =
+# expect-status: 2
+# expect-error: <source>:2:

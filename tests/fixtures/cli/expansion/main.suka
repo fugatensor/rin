@@ -1,0 +1,8 @@
+verify BEFORE = Alice : mortal
+import base
+Alice : human
+verify AFTER = Alice : mortal
+
+# expect-output: verify BEFORE PASS
+# expect-output: verify IMPORTED PASS
+# expect-output: verify AFTER PASS

@@ -1,0 +1,12 @@
+
+0 : nat
+all n:nat => succ(n) : nat
+verify ZERO = 0 : nat
+verify ONE = succ(0) : nat
+verify TWO = succ(succ(0)) : nat
+
+# expect-status: 0
+# expect-output: verify ZERO PASS
+# expect-output: verify ONE PASS
+# expect-output: verify TWO PASS
+# expect-error: (?is)^(?:|.*limit.*)$

@@ -1,0 +1,5 @@
+苏格拉底 : human
+all x:human =>
+    exists m => mother(m, x)
+verify 母亲 = exists m => mother(m, 苏格拉底)
+# expect-output: verify 母亲 PASS

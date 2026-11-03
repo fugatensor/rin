@@ -1,0 +1,6 @@
+# 基础事实
+苏格拉底: human
+柏拉图: human
+史努比: dog
+0: nat
+teacher(苏格拉底, 柏拉图)

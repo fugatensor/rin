@@ -1,0 +1,11 @@
+
+0 : nat
+all n:nat =>
+    succ(n) : nat
+verify KNOWN = succ(succ(0)) : nat
+verify UNRESOLVED = foo : nat
+
+# expect-status: 3
+# expect-output: verify KNOWN PASS
+# expect-output: verify UNRESOLVED UNKNOWN
+# expect-error: (?i)limit

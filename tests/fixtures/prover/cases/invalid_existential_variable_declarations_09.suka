@@ -1,0 +1,3 @@
+verify P = exists m: mother(m, Alice)
+
+# expect-status: 2

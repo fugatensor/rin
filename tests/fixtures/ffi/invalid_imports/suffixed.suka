@@ -1,0 +1,3 @@
+import facts.suka
+# expect-status: 2
+# expect-error: <source>

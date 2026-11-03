@@ -1,0 +1,4 @@
+all x:human:
+    mortal(x)
+
+# expect-status: 2

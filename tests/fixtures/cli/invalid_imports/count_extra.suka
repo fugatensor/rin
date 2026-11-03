@@ -1,0 +1,3 @@
+import facts extra
+
+# expect-status: 2

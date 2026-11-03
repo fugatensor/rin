@@ -1,0 +1,180 @@
+{
+  "name": "Suka",
+  "scopeName": "source.suka",
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "name": "string.quoted.double.suka",
+      "begin": "\"",
+      "end": "\"|$",
+      "patterns": [
+        {
+          "name": "constant.character.escape.suka",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "match": "^\\s*(import)\\s+((?:(?!=>|->)[^\\s:,()=|#\"<>])+)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.import.suka"
+        },
+        "2": {
+          "name": "entity.name.namespace.suka"
+        }
+      }
+    },
+    {
+      "match": "^\\s*(verify)\\s+((?:(?!=>|->)[^\\s:,()=|#\"<>])+)\\s*(=)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.verify.suka"
+        },
+        "2": {
+          "name": "entity.name.label.suka"
+        },
+        "3": {
+          "name": "keyword.operator.assignment.suka"
+        }
+      }
+    },
+    {
+      "name": "meta.declaration.type.suka",
+      "begin": "^\\s*(type)\\s+((?:(?!=>|->)[^\\s:,()=|#\"<>])+)\\s*(=)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration.suka"
+        },
+        "2": {
+          "name": "entity.name.type.suka"
+        },
+        "3": {
+          "name": "keyword.operator.assignment.suka"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "begin": "\\(",
+          "end": "\\)",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.section.group.begin.suka"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.section.group.end.suka"
+            }
+          },
+          "patterns": [
+            {
+              "name": "entity.name.type.suka",
+              "match": "(?:(?!=>|->)[^\\s:,()=|#\"<>])+"
+            },
+            {
+              "name": "punctuation.separator.suka",
+              "match": ","
+            }
+          ]
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "name": "entity.name.function.constructor.suka",
+          "match": "(?:(?!=>|->)[^\\s:,()=|#\"<>])+"
+        },
+        {
+          "name": "keyword.operator.alternative.suka",
+          "match": "\\|"
+        }
+      ]
+    },
+    {
+      "name": "meta.declaration.quantifier.suka",
+      "begin": "(?<![^\\s:,()=|#\"<>])(all|exists)(?=\\s+(?:(?!=>|->)[^\\s:,()=|#\"<>])+)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.quantifier.suka"
+        }
+      },
+      "end": "=>|$",
+      "endCaptures": {
+        "0": {
+          "name": "keyword.operator.quantifier.suka"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#type"
+        },
+        {
+          "name": "variable.parameter.suka",
+          "match": "(?:(?!=>|->)[^\\s:,()=|#\"<>])+"
+        },
+        {
+          "name": "punctuation.separator.suka",
+          "match": ","
+        }
+      ]
+    },
+    {
+      "include": "#type"
+    },
+    {
+      "name": "entity.name.function.suka",
+      "match": "(?:(?!=>|->)[^\\s:,()=|#\"<>])+(?=\\s*\\()"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "name": "keyword.operator.suka",
+      "match": "=>|->|[=|]"
+    },
+    {
+      "name": "punctuation.separator.suka",
+      "match": "[,:]"
+    },
+    {
+      "name": "punctuation.section.group.suka",
+      "match": "[()]"
+    },
+    {
+      "name": "variable.other.constant.suka",
+      "match": "(?:(?!=>|->)[^\\s:,()=|#\"<>])+"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.suka",
+      "begin": "#",
+      "end": "$"
+    },
+    "type": {
+      "match": "(:)\\s*((?:(?!=>|->)[^\\s:,()=|#\"<>])+)",
+      "captures": {
+        "1": {
+          "name": "punctuation.separator.type.suka"
+        },
+        "2": {
+          "name": "entity.name.type.suka"
+        }
+      }
+    },
+    "number": {
+      "name": "constant.numeric.suka",
+      "match": "(?<![^\\s:,()=|#\"<>])[0-9]+(?![^\\s:,()=|#\"<>])"
+    }
+  }
+}

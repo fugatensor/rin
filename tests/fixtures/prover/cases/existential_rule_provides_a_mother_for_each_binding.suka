@@ -1,0 +1,11 @@
+
+苏格拉底 : human
+柏拉图 : human
+all x:human =>
+    exists m => mother(m, x)
+verify SOCRATES = exists m => mother(m, 苏格拉底)
+verify PLATO = exists m => mother(m, 柏拉图)
+
+# expect-status: 0
+# expect-output: verify SOCRATES PASS
+# expect-output: verify PLATO PASS

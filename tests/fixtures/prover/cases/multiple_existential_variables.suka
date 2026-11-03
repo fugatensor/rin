@@ -1,0 +1,10 @@
+
+Alice : human
+all x:human =>
+    exists a, b => parents(a, b, x)
+verify TWO = exists m, f => parents(m, f, Alice)
+verify ONE = exists m => parents(m, m, Alice)
+
+# expect-status: 1
+# expect-output: verify TWO PASS
+# expect-output: verify ONE FAIL

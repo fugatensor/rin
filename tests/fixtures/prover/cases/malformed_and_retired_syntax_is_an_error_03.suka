@@ -1,0 +1,4 @@
+any x:human:
+    x : mortal
+
+# expect-status: 2

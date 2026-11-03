@@ -1,0 +1,12 @@
+
+苏格拉底 : human
+all x:human =>
+    exists m => mother(m, x)
+verify EXISTS = exists m => mother(m, 苏格拉底)
+verify NAMED = mother(Alice, 苏格拉底)
+verify SELF = mother(苏格拉底, 苏格拉底)
+
+# expect-status: 1
+# expect-output: verify EXISTS PASS
+# expect-output: verify NAMED FAIL
+# expect-output: verify SELF FAIL

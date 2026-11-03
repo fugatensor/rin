@@ -1,0 +1,6 @@
+0 : nat
+all n:nat =>
+    succ(n) : nat
+verify UNPROVED = unknown(0)
+
+# expect-status: 0

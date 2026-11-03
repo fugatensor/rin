@@ -1,0 +1,4 @@
+all x, y =>
+    mortal(x)
+
+# expect-status: 2

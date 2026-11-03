@@ -1,0 +1,3 @@
+type nat = 0 | succ(missing)
+
+# expect-status: 2

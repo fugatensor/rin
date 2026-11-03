@@ -1,0 +1,17 @@
+
+Alice : human
+Bob : human
+teacher(Alice, Bob)
+all x:human => x : mortal
+all x, y:human => teacher(x, y) -> respect(y, x)
+all x:human => exists m => mother(m, x)
+verify DIRECT = Alice : mortal
+verify CONDITIONAL = respect(Bob, Alice)
+verify EXISTENTIAL = exists m => mother(m, Bob)
+verify WRONG_DIRECTION = respect(Alice, Bob)
+
+# expect-status: 1
+# expect-output: verify DIRECT PASS
+# expect-output: verify CONDITIONAL PASS
+# expect-output: verify EXISTENTIAL PASS
+# expect-output: verify WRONG_DIRECTION FAIL

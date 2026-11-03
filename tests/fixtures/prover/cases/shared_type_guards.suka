@@ -1,0 +1,20 @@
+
+Alice : human
+Bob : human
+Snoopy : dog
+teacher(Alice, Bob)
+teacher(Alice, Snoopy)
+all x, y:human =>
+    teacher(x, y) -> respect(y, x)
+all x, y:human, z:dog =>
+    group(x, y, z)
+verify PEOPLE = respect(Bob, Alice)
+verify DOG = respect(Snoopy, Alice)
+verify MIXED = group(Alice, Bob, Snoopy)
+verify BAD_GUARD = group(Alice, Snoopy, Bob)
+
+# expect-status: 1
+# expect-output: verify PEOPLE PASS
+# expect-output: verify DOG FAIL
+# expect-output: verify MIXED PASS
+# expect-output: verify BAD_GUARD FAIL

@@ -1,0 +1,14 @@
+
+verify INFERRED = exists dog -> mortal
+all x:animal =>
+    x : mortal
+all x:dog =>
+    x : animal
+史努比 : dog
+苏格拉底 : human
+苏格拉底 : wise
+verify DIRECT = exists human -> wise
+
+# expect-status: 0
+# expect-output: verify INFERRED PASS
+# expect-output: verify DIRECT PASS

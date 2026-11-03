@@ -1,0 +1,3 @@
+all x:human => chosen(x) ->
+
+# expect-status: 2

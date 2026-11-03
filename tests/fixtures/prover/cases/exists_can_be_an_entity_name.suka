@@ -1,0 +1,6 @@
+
+exists : mortal
+verify ENTITY = exists : mortal
+
+# expect-status: 0
+# expect-output: verify ENTITY PASS

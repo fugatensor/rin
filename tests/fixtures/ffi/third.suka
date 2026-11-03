@@ -1,0 +1,3 @@
+Bob : human
+verify THIRD = Bob : human
+# expect-output: verify THIRD PASS

@@ -1,0 +1,17 @@
+
+all x:human =>
+    x : mortal
+all x:mortal =>
+    x : human
+all x:invisible =>
+    x : absent
+all x:absent =>
+    x : invisible
+Alice : human
+Alice : human
+verify CYCLE = Alice : mortal
+verify UNSEEDED = Alice : invisible
+
+# expect-status: 1
+# expect-output: verify CYCLE PASS
+# expect-output: verify UNSEEDED FAIL

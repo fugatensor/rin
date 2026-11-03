@@ -1,0 +1,3 @@
+Alice : human
+verify FIRST = Alice : human
+# expect-output: verify FIRST PASS

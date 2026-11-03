@@ -1,0 +1,10 @@
+import left
+import right
+import base
+import left
+verify ROOT = Alice : human
+
+# expect-output: verify BASE PASS
+# expect-output: verify LEFT PASS
+# expect-output: verify RIGHT PASS
+# expect-output: verify ROOT PASS

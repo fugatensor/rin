@@ -1,0 +1,4 @@
+all x:human =>
+Alice : human
+
+# expect-status: 2

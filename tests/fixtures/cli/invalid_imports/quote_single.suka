@@ -1,0 +1,4 @@
+import 'facts'
+
+# expect-status: 2
+# expect-error: (?is)(?=.*(?:quote|引号))(?=.*(?:remove|omit|without|unquoted|去掉|移除|不要))

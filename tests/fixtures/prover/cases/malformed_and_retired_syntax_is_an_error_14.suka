@@ -1,0 +1,3 @@
+verify human(Alice) = P
+
+# expect-status: 2

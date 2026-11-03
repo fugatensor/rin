@@ -1,0 +1,13 @@
+
+# A whole-line comment.
+苏格拉底 : human # Inline comment.
+柏拉图 : human
+all x:human, y:human =>
+    # Comments and blank lines do not end a rule block.
+
+    teacher(x, y) -> respect(y, x) # A rule comment.
+teacher(苏格拉底, 柏拉图)
+verify 师生 = respect(柏拉图, 苏格拉底)
+
+# expect-status: 0
+# expect-output: verify 师生 PASS

@@ -1,0 +1,16 @@
+
+verify BEFORE_FACTS = Alice : immortal
+all x:mortal =>
+    x : immortal
+all x:human =>
+    chosen(x) -> mortal(x)
+    mortal(x) -> known(x)
+all x:person =>
+    x : human
+chosen(Alice)
+Alice : person
+verify MULTI_RULE = known(Alice)
+
+# expect-status: 0
+# expect-output: verify BEFORE_FACTS PASS
+# expect-output: verify MULTI_RULE PASS

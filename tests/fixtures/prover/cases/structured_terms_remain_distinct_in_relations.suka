@@ -1,0 +1,14 @@
+
+type nat = 0 | succ(nat)
+pair(succ(0), succ(0))
+pair(succ(succ(0)), 0)
+verify EXACT = pair(succ(0), succ(0))
+verify DIFFERENT = pair(succ(0), 0)
+verify REPEATED = exists n => pair(n, n)
+verify NESTED_MISMATCH = exists n => pair(succ(n), succ(succ(n)))
+
+# expect-status: 1
+# expect-output: verify EXACT PASS
+# expect-output: verify DIFFERENT FAIL
+# expect-output: verify REPEATED PASS
+# expect-output: verify NESTED_MISMATCH FAIL

@@ -1,0 +1,4 @@
+import broken
+
+# expect-status: 2
+# expect-error: :2\b

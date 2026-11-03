@@ -1,0 +1,9 @@
+
+all x:human =>
+    exists m => mother(m, x)
+verify NO_PERSON = exists m => mother(m, Nobody)
+verify NO_MOTHERS = exists m, x => mother(m, x)
+
+# expect-status: 1
+# expect-output: verify NO_PERSON FAIL
+# expect-output: verify NO_MOTHERS FAIL

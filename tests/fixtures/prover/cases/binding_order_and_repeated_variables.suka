@@ -1,0 +1,19 @@
+
+A : human
+B : human
+all x:human, y:human =>
+    teacher(x, y) -> respect(y, x)
+all x:human =>
+    teacher(x, x) -> x : reflective
+teacher(A, B)
+teacher(B, B)
+verify REVERSE = respect(B, A)
+verify WRONG_ORDER = respect(A, B)
+verify SAME = B : reflective
+verify DIFFERENT = A : reflective
+
+# expect-status: 1
+# expect-output: verify REVERSE PASS
+# expect-output: verify WRONG_ORDER FAIL
+# expect-output: verify SAME PASS
+# expect-output: verify DIFFERENT FAIL

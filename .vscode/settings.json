@@ -1,0 +1,4 @@
+{
+  "suka.executable": "./build/suka",
+  "suka.diagnostics.enable": true
+}

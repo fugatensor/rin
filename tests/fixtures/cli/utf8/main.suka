@@ -1,0 +1,4 @@
+import math.base
+verify PERSON = 苏格拉底 : mortal
+
+# expect-output: verify PERSON PASS

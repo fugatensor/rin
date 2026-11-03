@@ -1,0 +1,4 @@
+type nat = 0 | succ(nat)
+succ(foo) : nat
+
+# expect-status: 2

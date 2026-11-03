@@ -1,0 +1,3 @@
+all x:human =>
+
+# expect-status: 2

@@ -1,0 +1,18 @@
+import facts
+import rules
+
+# 验证目标
+verify P1 = 柏拉图: mortal
+# verify P1 PASS
+
+verify P2 = respect(柏拉图, 苏格拉底)
+# verify P2 PASS
+
+verify P3 = exists m => mother(m, 苏格拉底)
+# verify P3 PASS
+
+verify P4 = succ(succ(0)): nat
+# verify P4 PASS
+
+verify P5 = exists m => mother(m, 柏拉图)
+# verify P5 PASS

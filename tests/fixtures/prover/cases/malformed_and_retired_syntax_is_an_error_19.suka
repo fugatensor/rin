@@ -1,0 +1,3 @@
+verify P = exists dog
+
+# expect-status: 2

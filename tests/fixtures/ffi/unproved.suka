@@ -1,0 +1,3 @@
+verify P = Alice : human
+# expect-status: 1
+# expect-output: verify P FAIL

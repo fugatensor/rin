@@ -1,0 +1,16 @@
+
+Alice : human
+Bob : human
+Snoopy : dog
+chosen(Alice)
+chosen(Snoopy)
+all x:human =>
+    chosen(x) -> exists m => mother(m, x)
+verify CHOSEN = exists m => mother(m, Alice)
+verify NO_PREMISE = exists m => mother(m, Bob)
+verify NO_GUARD = exists m => mother(m, Snoopy)
+
+# expect-status: 1
+# expect-output: verify CHOSEN PASS
+# expect-output: verify NO_PREMISE FAIL
+# expect-output: verify NO_GUARD FAIL

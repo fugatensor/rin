@@ -1,0 +1,15 @@
+
+type nat = 0 | succ(nat)
+all n:nat =>
+    valid(n)
+all x:valid =>
+    visible(x)
+verify PARTIAL = exists n => visible(succ(n))
+verify UNRELATED = missing(Alice)
+verify INVALID = succ(foo) : nat
+
+# expect-status: 3
+# expect-output: verify PARTIAL UNKNOWN
+# expect-output: verify UNRELATED FAIL
+# expect-output: verify INVALID FAIL
+# expect-error: (?i)limited

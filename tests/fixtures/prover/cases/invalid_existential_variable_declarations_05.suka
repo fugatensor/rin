@@ -1,0 +1,4 @@
+all x:human =>
+    exists m,  => mother(m, x)
+
+# expect-status: 2

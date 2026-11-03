@@ -1,0 +1,14 @@
+
+verify LEGACY = exists child -> mortal
+verify RELATIONAL = exists m => mortal(m)
+all x:person =>
+    x : mortal
+all x:child =>
+    x : person
+all x:seed =>
+    exists m => child(m)
+original : seed
+
+# expect-status: 0
+# expect-output: verify LEGACY PASS
+# expect-output: verify RELATIONAL PASS

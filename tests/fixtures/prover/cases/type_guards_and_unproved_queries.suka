@@ -1,0 +1,18 @@
+
+苏格拉底 : human
+史努比 : dog
+all x:human =>
+    x : mortal
+all x:human, y:human =>
+    teacher(x, y) -> respect(y, x)
+teacher(苏格拉底, 史努比)
+verify HUMAN = 苏格拉底 : mortal
+verify DOG = 史努比 : mortal
+verify GUARD = respect(史努比, 苏格拉底)
+verify UNKNOWN = unknown(苏格拉底)
+
+# expect-status: 1
+# expect-output: verify HUMAN PASS
+# expect-output: verify DOG FAIL
+# expect-output: verify GUARD FAIL
+# expect-output: verify UNKNOWN FAIL

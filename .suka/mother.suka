@@ -1,0 +1,12 @@
+苏格拉底: human
+柏拉图: human
+
+# 对每个人 x，存在某个 m，m 是 x 的母亲。
+all x: human =>
+    exists m => mother(m, x)
+
+verify M1 = exists m => mother(m, 苏格拉底)
+# verify M1 PASS
+
+verify M2 = exists m => mother(m, 柏拉图)
+# verify M2 PASS

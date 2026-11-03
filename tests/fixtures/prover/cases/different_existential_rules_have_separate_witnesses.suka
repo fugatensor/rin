@@ -1,0 +1,13 @@
+
+Alice : human
+all x:human =>
+    exists m => maternal(m)
+    exists m => paternal(m)
+verify MATERNAL = exists m => maternal(m)
+verify PATERNAL = exists m => paternal(m)
+verify SHARED = exists maternal -> paternal
+
+# expect-status: 1
+# expect-output: verify MATERNAL PASS
+# expect-output: verify PATERNAL PASS
+# expect-output: verify SHARED FAIL

@@ -1,0 +1,3 @@
+import ../outside
+
+# expect-status: 2

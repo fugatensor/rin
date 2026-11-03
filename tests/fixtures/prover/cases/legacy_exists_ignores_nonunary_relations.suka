@@ -1,0 +1,15 @@
+
+dog(Alice, Bob)
+mortal(Alice)
+human(Carol)
+wise(Carol, Dave)
+pair(Eve, Frank)
+friends(Eve, Frank)
+verify LEFT_ARITY = exists dog -> mortal
+verify RIGHT_ARITY = exists human -> wise
+verify BOTH_ARITIES = exists pair -> friends
+
+# expect-status: 1
+# expect-output: verify LEFT_ARITY FAIL
+# expect-output: verify RIGHT_ARITY FAIL
+# expect-output: verify BOTH_ARITIES FAIL

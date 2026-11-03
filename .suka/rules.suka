@@ -1,0 +1,10 @@
+# 自然数的零与后继构造规则。
+all n: nat => succ(n): nat
+
+# 每个人都会死，也都有某位母亲。
+all x: human =>
+    x: mortal
+    exists m => mother(m, x)
+
+all x, y: human =>
+    teacher(x, y) -> respect(y, x)

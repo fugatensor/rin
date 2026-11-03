@@ -1,0 +1,18 @@
+type t0 = z
+type t1 = c1(t0, t0)
+type t2 = c2(t1, t1)
+type t3 = c3(t2, t2)
+type t4 = c4(t3, t3)
+type t5 = c5(t4, t4)
+type t6 = c6(t5, t5)
+type t7 = c7(t6, t6)
+type t8 = c8(t7, t7)
+type t9 = c9(t8, t8)
+type t10 = c10(t9, t9)
+type t11 = c11(t10, t10)
+type t12 = c12(t11, t11)
+type t13 = c13(t12, t12)
+type t14 = c14(t13, t13)
+
+# expect-status: 2
+# expect-error: (?i)limit

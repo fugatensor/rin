@@ -1,0 +1,11 @@
+
+type nat = 0 | exists(nat)
+verify CONSTRUCTOR = exists(0) : nat
+0 : item
+exists(0)
+all x:item => exists(x) -> seen(x)
+verify RELATION = seen(0)
+
+# expect-status: 0
+# expect-output: verify CONSTRUCTOR PASS
+# expect-output: verify RELATION PASS

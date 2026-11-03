@@ -1,0 +1,13 @@
+# 从零出发，用后继规则构造自然数。
+0: nat
+
+all n: nat => succ(n): nat
+
+verify N0 = 0: nat
+# verify N0 PASS
+
+verify N1 = succ(0): nat
+# verify N1 PASS
+
+verify N2 = succ(succ(0)): nat
+# verify N2 PASS

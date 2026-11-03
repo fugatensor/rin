@@ -1,0 +1,4 @@
+all x:human
+    teacher(x, x) -> respect(x, x)
+
+# expect-status: 2

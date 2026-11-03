@@ -1,0 +1,16 @@
+
+type nat = 0 | succ(nat)
+0 : item
+succ(0) : item
+edge(succ(0), 0)
+edge(succ(succ(0)), 0)
+all n:item =>
+    edge(succ(n), n) -> step(n)
+verify MATCH = step(0)
+verify MISMATCH = step(succ(0))
+verify STRUCTURED_EXISTS = exists n => edge(succ(n), n)
+
+# expect-status: 1
+# expect-output: verify MATCH PASS
+# expect-output: verify MISMATCH FAIL
+# expect-output: verify STRUCTURED_EXISTS PASS

@@ -1,0 +1,15 @@
+
+original : seed
+all x:seed =>
+    exists y => seed(y)
+verify KNOWN = original : seed
+verify WITNESS = exists y => seed(y)
+verify UNRESOLVED = missing(original)
+verify LEGACY = exists ghost -> mortal
+
+# expect-status: 3
+# expect-output: verify KNOWN PASS
+# expect-output: verify WITNESS PASS
+# expect-output: verify UNRESOLVED UNKNOWN
+# expect-output: verify LEGACY UNKNOWN
+# expect-error: (?i)limit

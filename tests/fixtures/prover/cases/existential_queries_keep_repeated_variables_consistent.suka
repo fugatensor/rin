@@ -1,0 +1,13 @@
+
+Alice : human
+pair(A, B)
+all x:human =>
+    exists m => mirror(m, m, x)
+verify SAME = exists m => mirror(m, m, Alice)
+verify CONSTANT = exists m => mirror(m, Alice, Alice)
+verify DIFFERENT = exists m => pair(m, m)
+
+# expect-status: 1
+# expect-output: verify SAME PASS
+# expect-output: verify CONSTANT FAIL
+# expect-output: verify DIFFERENT FAIL

@@ -1,0 +1,3 @@
+import base
+verify P = Alice : human
+# expect-output: verify P PASS

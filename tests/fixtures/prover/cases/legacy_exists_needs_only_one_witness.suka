@@ -1,0 +1,10 @@
+
+Casper : dog
+Snoopy : dog
+Snoopy : mortal
+verify SOME = exists dog -> mortal
+verify NOT_ALL = Casper : mortal
+
+# expect-status: 1
+# expect-output: verify SOME PASS
+# expect-output: verify NOT_ALL FAIL

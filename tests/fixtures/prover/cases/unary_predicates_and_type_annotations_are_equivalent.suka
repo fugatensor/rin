@@ -1,0 +1,15 @@
+
+human(Alice)
+Bob : human
+all x:human =>
+    mortal(x)
+verify ANNOTATION = Alice : human
+verify PREDICATE = human(Bob)
+verify CONSEQUENCE = Alice : mortal
+verify UNARY = mortal(Bob)
+
+# expect-status: 0
+# expect-output: verify ANNOTATION PASS
+# expect-output: verify PREDICATE PASS
+# expect-output: verify CONSEQUENCE PASS
+# expect-output: verify UNARY PASS

@@ -1,0 +1,5 @@
+type nat = 0 | succ(nat)
+all x:human =>
+    x : nat
+
+# expect-status: 2

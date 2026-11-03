@@ -1,0 +1,9 @@
+{
+  "Universal rule": { "prefix": "all", "body": ["all ${1:x}:${2:human} =>", "    ${3:x:mortal}"], "description": "对该类型的所有对象应用规则" },
+  "Shared type": { "prefix": "all2", "body": ["all ${1:x},${2:y}:${3:human} =>", "    ${4:teacher(x,y) -> respect(y,x)}"], "description": "多个变量共享类型" },
+  "Existential conclusion": { "prefix": "exists", "body": "exists ${1:m} => ${2:mother(m,x)}", "description": "引入匿名存在对象" },
+  "Verification": { "prefix": "verify", "body": "verify ${1:P1} = ${2:苏格拉底:mortal}", "description": "验证命题" },
+  "Existential verification": { "prefix": "verifyexists", "body": "verify ${1:P1} = exists ${2:m} => ${3:mother(m,苏格拉底)}", "description": "验证存在命题" },
+  "Import": { "prefix": "import", "body": "import ${1:facts}", "description": "导入同目录模块，自动补 .suka 后缀" },
+  "Natural numbers": { "prefix": "nat", "body": ["0:nat", "all n:nat => succ(n):nat", "verify ${1:N1} = succ(0):nat"], "description": "自然数规则" }
+}

@@ -1,0 +1,3 @@
+verify SECOND = Alice : human
+# expect-status: 1
+# expect-output: verify SECOND FAIL

@@ -1,0 +1,4 @@
+import shared
+verify PERSON = 苏格拉底 : human
+
+# expect-output: verify PERSON PASS

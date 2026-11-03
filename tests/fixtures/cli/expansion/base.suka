@@ -1,0 +1,3 @@
+all x:human =>
+    x : mortal
+verify IMPORTED = Alice : mortal

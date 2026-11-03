@@ -1,0 +1,4 @@
+import base
+verify ROOT = Alice : human
+# expect-output: verify IMPORTED PASS
+# expect-output: verify ROOT PASS
