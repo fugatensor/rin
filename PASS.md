@@ -74,4 +74,4 @@ cmake --install build/cmake --prefix /path/to/rin-sdk
 
 `Rin::Pass` 是 CMake `INTERFACE` target，传递头文件目录与 C++17 要求。顶层构建默认生成独立 CLI。`RIN_BUILD_SHARED=ON` 额外生成跨语言调用使用的 C ABI 共享库；子项目的 CLI、共享库、测试和安装选项默认关闭。CLI、嵌入接口与 C ABI 共用头文件证明核心。
 
-ASK 的领域规则与验证入口见 [ASK 规则证明与计划校验](../ask/docs/规则证明与计划校验.md)。
+通用推理与专用计划校验的实验对照见 [ASK 成本评估](../ask/docs/Rin成本与验证价值评估.md)。
