@@ -1,9 +1,9 @@
 {
-  "name": "suka-language",
-  "displayName": "Suka",
-  "description": "Suka syntax highlighting, language server, completion, diagnostics and run command.",
+  "name": "rin-language",
+  "displayName": "Rin",
+  "description": "Rin syntax highlighting, language server, completion, diagnostics and run command.",
   "version": "0.1.1",
-  "publisher": "suka-local",
+  "publisher": "rin-local",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
@@ -13,8 +13,8 @@
   ],
   "main": "./extension.js",
   "activationEvents": [
-    "onLanguage:suka",
-    "onCommand:suka.run"
+    "onLanguage:rin",
+    "onCommand:rin.run"
   ],
   "extensionKind": [
     "workspace"
@@ -24,7 +24,7 @@
       "supported": "limited",
       "description": "Syntax highlighting is available. Trust the workspace to start the language server and run the configured compiler.",
       "restrictedConfigurations": [
-        "suka.executable"
+        "rin.executable"
       ]
     },
     "virtualWorkspaces": {
@@ -34,93 +34,93 @@
   "contributes": {
     "languages": [
       {
-        "id": "suka",
+        "id": "rin",
         "aliases": [
-          "Suka",
-          "suka"
+          "Rin",
+          "rin"
         ],
         "extensions": [
-          ".suka"
+          ".rin"
         ],
         "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
       {
-        "language": "suka",
-        "scopeName": "source.suka",
-        "path": "./syntaxes/suka.tmLanguage.json"
+        "language": "rin",
+        "scopeName": "source.rin",
+        "path": "./syntaxes/rin.tmLanguage.json"
       }
     ],
     "semanticTokenTypes": [
       {
         "id": "label",
         "superType": "variable",
-        "description": "Suka verification label"
+        "description": "Rin verification label"
       }
     ],
     "semanticTokenScopes": [
       {
-        "language": "suka",
+        "language": "rin",
         "scopes": {
           "variable.readonly": [
-            "variable.other.constant.suka"
+            "variable.other.constant.rin"
           ],
           "parameter": [
-            "variable.parameter.suka"
+            "variable.parameter.rin"
           ],
           "type": [
-            "entity.name.type.suka"
+            "entity.name.type.rin"
           ],
           "function": [
-            "entity.name.function.suka"
+            "entity.name.function.rin"
           ],
           "namespace": [
-            "entity.name.namespace.suka"
+            "entity.name.namespace.rin"
           ],
           "label": [
-            "entity.name.label.suka"
+            "entity.name.label.rin"
           ]
         }
       }
     ],
     "snippets": [
       {
-        "language": "suka",
-        "path": "./snippets/suka.json"
+        "language": "rin",
+        "path": "./snippets/rin.json"
       }
     ],
     "commands": [
       {
-        "command": "suka.run",
-        "title": "Run Suka File",
-        "category": "Suka",
+        "command": "rin.run",
+        "title": "Run Rin File",
+        "category": "Rin",
         "icon": "$(play)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "suka.run",
-          "when": "resourceLangId == suka && isWorkspaceTrusted",
+          "command": "rin.run",
+          "when": "resourceLangId == rin && isWorkspaceTrusted",
           "group": "navigation@1"
         }
       ]
     },
     "configuration": {
-      "title": "Suka",
+      "title": "Rin",
       "properties": {
-        "suka.executable": {
+        "rin.executable": {
           "type": "string",
-          "default": "suka",
+          "default": "rin",
           "scope": "window",
-          "description": "Suka executable on PATH, an absolute path, or a path relative to the first workspace folder. No shell arguments."
+          "description": "Rin executable on PATH, an absolute path, or a path relative to the first workspace folder. No shell arguments."
         },
-        "suka.diagnostics.enable": {
+        "rin.diagnostics.enable": {
           "type": "boolean",
           "default": true,
           "scope": "window",
-          "description": "Check unsaved Suka text with the configured compiler (--check --stdin)."
+          "description": "Check unsaved Rin text with the configured compiler (--check --stdin)."
         }
       }
     }

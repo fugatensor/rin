@@ -5,10 +5,11 @@ const { fileURLToPath, pathToFileURL } = require('node:url');
 
 const KEYWORDS = ['all', 'exists', 'verify', 'import'];
 const OPERATORS = ['=>', '->', ':', '&'];
+const MODULE_SUFFIX = '.rin';
 const NAME = '[^\\s:,()=|&#"<>]+';
 
 function validModule(name) {
-  return name && !name.startsWith('.') && !name.endsWith('.suka') &&
+  return name && !name.startsWith('.') && !name.endsWith(MODULE_SUFFIX) &&
     !/[\s"':,=()|&\\/]/u.test(name) && !name.includes('->');
 }
 
@@ -63,7 +64,7 @@ function collectSymbols(document, documents, rootDir) {
     for (const raw of text.split(/\r?\n/)) {
       const match = /^\s*import\s+(\S+)\s*$/.exec(withoutComment(raw));
       if (!match || !validModule(match[1])) continue;
-      const filename = path.resolve(directory, match[1] + '.suka');
+      const filename = path.resolve(directory, match[1] + MODULE_SUFFIX);
       const importedUri = pathToFileURL(filename).href;
       if (seen.has(importedUri)) continue;
       try {
@@ -94,18 +95,18 @@ function completionItems(document, position, documents, rootDir) {
     const directory = documentDirectory(document, rootDir);
     try {
       return fs.readdirSync(directory, { withFileTypes: true }).filter(entry => {
-        const name = entry.name.endsWith('.suka') ? entry.name.slice(0, -5) : '';
+        const name = entry.name.endsWith(MODULE_SUFFIX) ? entry.name.slice(0, -MODULE_SUFFIX.length) : '';
         const filename = path.join(directory, entry.name);
         return validModule(name) && name.startsWith(importing[1]) &&
           pathToFileURL(filename).href !== document.uri &&
           (entry.isFile() || entry.isSymbolicLink()) && sameDirectory(filename, directory);
-      }).map(entry => ({ label: entry.name.slice(0, -5), kind: 9, detail: `导入同目录 ${entry.name}` }));
+      }).map(entry => ({ label: entry.name.slice(0, -MODULE_SUFFIX.length), kind: 9, detail: `导入同目录 ${entry.name}` }));
     } catch { return []; }
   }
   const symbols = collectSymbols(document, documents, rootDir);
   return [
-    ...KEYWORDS.map(label => ({ label, kind: 14, detail: 'Suka 关键字' })),
-    ...OPERATORS.map(label => ({ label, kind: 24, detail: 'Suka 符号' })),
+    ...KEYWORDS.map(label => ({ label, kind: 14, detail: 'Rin 关键字' })),
+    ...OPERATORS.map(label => ({ label, kind: 24, detail: 'Rin 符号' })),
     ...symbols,
   ];
 }

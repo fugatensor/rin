@@ -1,4 +1,4 @@
 import absent
 
 # expect-status: 2
-# expect-error: absent\.suka
+# expect-error: absent\.rin

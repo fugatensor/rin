@@ -1,5 +1,5 @@
-#include "suka/pass.h"
+#include "rin/pass.h"
 
-suka::pass::Decision runFromOtherTranslationUnit(std::string_view source) {
-    return suka::pass::run(source);
+rin::pass::Decision runFromOtherTranslationUnit(std::string_view source) {
+    return rin::pass::run(source);
 }

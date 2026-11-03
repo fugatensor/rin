@@ -1,4 +1,0 @@
-import second
-
-# expect-status: 2
-# expect-error: (?is)(?=.*cycl)(?=.*\.suka)

@@ -1,4 +1,4 @@
-"""Shared runners; Suka test inputs live in fixtures/, never in Python strings."""
+"""Shared runners; Rin test inputs live in fixtures/, never in Python strings."""
 
 from pathlib import Path
 import shutil

@@ -1,5 +1,5 @@
-#ifndef SUKA_PASS_H
-#define SUKA_PASS_H
+#ifndef RIN_PASS_H
+#define RIN_PASS_H
 
 #include <algorithm>
 #include <charconv>
@@ -18,9 +18,9 @@
 #include <utility>
 #include <vector>
 
-namespace suka { inline constexpr char version[] = "suka 0.3.0"; }
+namespace rin { inline constexpr char version[] = "rin 0.3.0"; }
 
-namespace suka::pass {
+namespace rin::pass {
 
 enum class Verdict { Pass, Fail, Unknown, Error };
 
@@ -275,22 +275,23 @@ inline std::vector<Line> expand_imports(const std::vector<Line>& lines,
     for (const auto& line : lines) {
         if (line.tokens[0] != "import") { expanded.push_back(line); continue; }
         if (line.indent || line.tokens.size() != 2)
-            fail(line.location, "expected: import MODULE (without quotes or .suka suffix)");
+            fail(line.location, "expected: import MODULE (without quotes or .rin suffix)");
         const auto& name = line.tokens[1];
         if (name.find_first_of("\"'") != std::string::npos)
             fail(line.location, "remove quotes from import module names; write: import facts");
-        if (name.size() >= 5 && name.compare(name.size() - 5, 5, ".suka") == 0)
-            fail(line.location, "omit the .suka suffix in imports; write: import facts");
+        constexpr std::string_view suffix = ".rin";
+        if (name.size() >= suffix.size() && name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0)
+            fail(line.location, "omit the .rin suffix in imports; write: import facts");
         if (!is_identifier(name) || name.front() == '.' ||
             name.find_first_of("/\\:") != std::string::npos ||
             std::any_of(name.begin(), name.end(), [](unsigned char ch) { return ch <= 32 || ch == 127; }))
             fail(line.location, "imports require a bare module name in the same directory");
-        const auto relative = std::filesystem::u8path(name + ".suka");
+        const auto relative = std::filesystem::u8path(name + ".rin");
         const auto target = std::filesystem::weakly_canonical(directory / relative);
         if (target.parent_path() != std::filesystem::weakly_canonical(directory))
             fail(line.location, "imports must stay in the same directory");
         if (imports.active.count(target)) fail(line.location, "cyclic import: " + name);
-        if (!std::filesystem::is_regular_file(target)) fail(line.location, "cannot import module: " + name + " (" + name + ".suka)");
+        if (!std::filesystem::is_regular_file(target)) fail(line.location, "cannot import module: " + name + " (" + name + ".rin)");
         auto imported = load_file(target, imports);
         expanded.insert(expanded.end(), imported.begin(), imported.end());
     }
@@ -626,7 +627,7 @@ inline Result evaluate(Program& program, const std::vector<Rule>& rules, bool ex
         failed = failed || (!found && !incomplete);
     }
     std::string error;
-    if (unknown) error = "suka: inference limit reached; unproved queries are UNKNOWN\n";
+    if (unknown) error = "rin: inference limit reached; unproved queries are UNKNOWN\n";
     return {unknown ? 3 : failed ? 1 : 0, output.str(), error};
 }
 
@@ -670,5 +671,5 @@ inline Decision run(std::string_view source) {
     }
 }
 
-} // namespace suka::pass
+} // namespace rin::pass
 #endif

@@ -1,4 +1,4 @@
-#include "suka/pass.h"
+#include "rin/pass.h"
 
 #include <array>
 #include <cstdlib>
@@ -8,7 +8,7 @@
 #include <limits>
 #include <thread>
 
-suka::pass::Decision runFromOtherTranslationUnit(std::string_view source);
+rin::pass::Decision runFromOtherTranslationUnit(std::string_view source);
 
 namespace {
 void require(bool condition, const std::string& message) {
@@ -16,14 +16,14 @@ void require(bool condition, const std::string& message) {
 }
 
 std::string source(const char* name) {
-    std::ifstream file(std::string(SUKA_TEST_FIXTURES) + "/" + name + ".suka");
+    std::ifstream file(std::string(RIN_TEST_FIXTURES) + "/" + name + ".rin");
     require(bool(file), "missing PASS fixture");
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
 }
 
 int main() {
-    using namespace suka::pass;
+    using namespace rin::pass;
     const auto provenSource = source("proven");
     const auto proven = runFromOtherTranslationUnit(provenSource);
     require(proven.verdict == Verdict::Pass &&
@@ -86,5 +86,5 @@ int main() {
     try { const Program invalid(malformedSource); }
     catch (const std::runtime_error&) { malformedRules = true; }
     require(malformedRules, "invalid fixed rules must fail during compilation");
-    std::cout << "SUKA header-only proof API passed\n";
+    std::cout << "Rin header-only proof API passed\n";
 }

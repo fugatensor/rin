@@ -13,13 +13,13 @@ const jobs = new Map();
 const revisions = new Map();
 const reports = new Map();
 let rootDir = process.cwd();
-let settings = { executable: 'suka', diagnostics: { enable: true } };
+let settings = { executable: 'rin', diagnostics: { enable: true } };
 let initialized = false;
 let shutdown = false;
 
 function diagnostic(message, severity = 1, line = 0, length = 1) {
   return { range: { start: { line, character: 0 }, end: { line, character: Math.max(1, length) } },
-    severity, source: 'suka', message };
+    severity, source: 'rin', message };
 }
 
 function updateReports(owner, report) {
@@ -91,22 +91,22 @@ function validate(uri, revision) {
     const report = parseDiagnostics(stderr, document, directory);
     if (message) report.get(uri).push(diagnostic(message, 2));
     else if (code !== 0 && [...report.values()].every(items => items.length === 0))
-      report.get(uri).push(diagnostic(stderr.trim() || `Suka checker exited with status ${code}`));
+      report.get(uri).push(diagnostic(stderr.trim() || `Rin checker exited with status ${code}`));
     updateReports(uri, report);
   };
   child.on('error', error => finish(null,
-    `Cannot run Suka checker: ${error.message}. Configure suka.executable.`));
+    `Cannot run Rin checker: ${error.message}. Configure rin.executable.`));
   child.stderr.setEncoding('utf8');
   child.stderr.on('data', chunk => {
     stderr += chunk.toString('utf8');
     if (stderr.length > 1024 * 1024) {
       child.kill();
-      finish(null, 'Suka checker produced too much diagnostic output.');
+      finish(null, 'Rin checker produced too much diagnostic output.');
     }
   });
   child.stdin.on('error', () => {}); // The checker may exit after an early parse error.
   child.on('close', code => finish(code));
-  job.timer = setTimeout(() => { child.kill(); finish(null, 'Suka syntax check timed out.'); }, 5000);
+  job.timer = setTimeout(() => { child.kill(); finish(null, 'Rin syntax check timed out.'); }, 5000);
   child.stdin.end(document.text, 'utf8');
 }
 
@@ -141,7 +141,7 @@ connection.on('message', message => {
       connection.respond(id, { capabilities: { positionEncoding: 'utf-16',
         textDocumentSync: { openClose: true, change: 1, save: { includeText: false } },
         completionProvider: { triggerCharacters: [':', '('], resolveProvider: false } },
-        serverInfo: { name: 'suka-language-server', version: '0.1.1' } });
+        serverInfo: { name: 'rin-language-server', version: '0.1.1' } });
       return;
     }
     if (method === 'exit') { stop(); process.exit(shutdown ? 0 : 1); }
@@ -178,7 +178,7 @@ connection.on('message', message => {
         cancel(uri); documents.delete(uri); updateReports(uri, new Map()); scheduleAll();
         break;
       }
-      case 'workspace/didChangeConfiguration': configure(params.settings?.suka || params.settings); scheduleAll(); break;
+      case 'workspace/didChangeConfiguration': configure(params.settings?.rin || params.settings); scheduleAll(); break;
       case 'textDocument/completion': {
         const document = documents.get(params.textDocument.uri);
         connection.respond(id, { isIncomplete: false,

@@ -1,0 +1,4 @@
+import facts.rin
+
+# expect-status: 2
+# expect-error: (?is)(?=.*\.rin)(?=.*(?:remove|omit|without|去掉|移除|不要))

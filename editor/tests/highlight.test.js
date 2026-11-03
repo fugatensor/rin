@@ -8,7 +8,7 @@ const { classify, lexLine } = require('../lib/highlight');
 let textmate, oniguruma;
 try { textmate = require('vscode-textmate'); oniguruma = require('vscode-oniguruma'); } catch {}
 const dependencyMissing = !textmate || !oniguruma;
-const grammarFile = path.resolve(__dirname, '../syntaxes/suka.tmLanguage.json');
+const grammarFile = path.resolve(__dirname, '../syntaxes/rin.tmLanguage.json');
 let wasm;
 async function registry(theme) {
   if (!wasm) {
@@ -20,7 +20,7 @@ async function registry(theme) {
     theme,
     onigLib: Promise.resolve({ createOnigScanner: patterns => new oniguruma.OnigScanner(patterns),
       createOnigString: text => new oniguruma.OnigString(text) }),
-    loadGrammar: async scope => scope === 'source.suka'
+    loadGrammar: async scope => scope === 'source.rin'
       ? textmate.parseRawGrammar(fs.readFileSync(grammarFile, 'utf8'), grammarFile) : null,
   });
 }
@@ -38,33 +38,33 @@ function expectScope(tokens, text, scope) {
 test('real TextMate/Oniguruma scopes cover objects, types, relations, modules, labels and comments', tokenizerOptions, async () => {
   const reg = await registry();
   try {
-    const grammar = await reg.loadGrammar('source.suka');
+    const grammar = await reg.loadGrammar('source.rin');
     let tokens = scopes(grammar, '苏格拉底:human');
-    expectScope(tokens, '苏格拉底', 'variable.other.constant.suka');
-    expectScope(tokens, 'human', 'entity.name.type.suka');
+    expectScope(tokens, '苏格拉底', 'variable.other.constant.rin');
+    expectScope(tokens, 'human', 'entity.name.type.rin');
     tokens = scopes(grammar, 'teacher(Alice,苏格拉底) # 关系');
-    expectScope(tokens, 'teacher', 'entity.name.function.suka');
-    expectScope(tokens, 'Alice', 'variable.other.constant.suka');
-    assert.ok(tokens.some(token => token.scopes.includes('comment.line.number-sign.suka')));
-    expectScope(scopes(grammar, 'import facts'), 'facts', 'entity.name.namespace.suka');
-    expectScope(scopes(grammar, 'verify P1 = 苏格拉底:human'), 'P1', 'entity.name.label.suka');
+    expectScope(tokens, 'teacher', 'entity.name.function.rin');
+    expectScope(tokens, 'Alice', 'variable.other.constant.rin');
+    assert.ok(tokens.some(token => token.scopes.includes('comment.line.number-sign.rin')));
+    expectScope(scopes(grammar, 'import facts'), 'facts', 'entity.name.namespace.rin');
+    expectScope(scopes(grammar, 'verify P1 = 苏格拉底:human'), 'P1', 'entity.name.label.rin');
   } finally { reg.dispose(); }
 });
 
 test('real tokenizer handles quantifier declarations, retired type syntax and adjacent arrows', tokenizerOptions, async () => {
   const reg = await registry();
   try {
-    const grammar = await reg.loadGrammar('source.suka');
+    const grammar = await reg.loadGrammar('source.rin');
     const quantified = scopes(grammar, 'all x,y:human,n:nat => exists m => mother(m,x)');
-    for (const name of ['x', 'y', 'n', 'm']) expectScope(quantified, name, 'variable.parameter.suka');
-    for (const type of ['human', 'nat']) expectScope(quantified, type, 'entity.name.type.suka');
+    for (const name of ['x', 'y', 'n', 'm']) expectScope(quantified, name, 'variable.parameter.rin');
+    for (const type of ['human', 'nat']) expectScope(quantified, type, 'entity.name.type.rin');
     const retired = scopes(grammar, 'type nat = 0 | succ(nat)');
     assert.ok(retired.every(token => !token.scopes.some(scope =>
-      scope === 'meta.declaration.type.suka' || scope === 'entity.name.function.constructor.suka')));
+      scope === 'meta.declaration.type.rin' || scope === 'entity.name.function.constructor.rin')));
     const compact = scopes(grammar, 'all x:human=>p(x)->q(x)');
-    expectScope(compact, '->', 'keyword.operator.suka');
-    expectScope(compact, 'p', 'entity.name.function.suka');
-    expectScope(compact, 'q', 'entity.name.function.suka');
+    expectScope(compact, '->', 'keyword.operator.rin');
+    expectScope(compact, 'p', 'entity.name.function.rin');
+    expectScope(compact, 'q', 'entity.name.function.rin');
   } finally { reg.dispose(); }
 });
 
@@ -129,15 +129,15 @@ function readTheme(filename) {
 }
 
 test('real Dark+ and Light+ themes give object/parameter/type/function non-default colors', {
-  skip: dependencyMissing || !process.env.SUKA_VSCODE_THEME_DIR ? 'Set SUKA_VSCODE_THEME_DIR and install tokenizer test dependencies to inspect the real VS Code themes.' : false,
+  skip: dependencyMissing || !process.env.RIN_VSCODE_THEME_DIR ? 'Set RIN_VSCODE_THEME_DIR and install tokenizer test dependencies to inspect the real VS Code themes.' : false,
 }, async t => {
   for (const filename of ['dark_plus.json', 'light_plus.json']) {
-    const source = readTheme(path.join(process.env.SUKA_VSCODE_THEME_DIR, filename));
+    const source = readTheme(path.join(process.env.RIN_VSCODE_THEME_DIR, filename));
     const foreground = source.colors['editor.foreground'];
     assert.ok(foreground, 'The resolved real theme must supply its default foreground');
     const reg = await registry({ name: source.name, settings: [{ settings: { foreground } }, ...source.tokenColors] });
     try {
-      const grammar = await reg.loadGrammar('source.suka');
+      const grammar = await reg.loadGrammar('source.rin');
       const color = (line, needle) => {
         const offset = line.indexOf(needle);
         const encoded = grammar.tokenizeLine2(line, textmate.INITIAL).tokens;

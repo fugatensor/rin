@@ -1,4 +1,4 @@
-#include "suka/pass.h"
+#include "rin/pass.h"
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -7,19 +7,19 @@ int main(int argc, char* argv[]) {
     bool check = false, standard_input = false, positional = false;
     std::string path, base_directory;
     auto usage = [&]() {
-        std::cerr << "usage: suka [--check] FILE\n"
-                  << "       suka [--check] --stdin [--base-dir DIRECTORY]\n";
+        std::cerr << "usage: rin [--check] FILE\n"
+                  << "       rin [--check] --stdin [--base-dir DIRECTORY]\n";
         return 2;
     };
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
         if (!positional && argument == "--") { positional = true; continue; }
         if (!positional && argument == "--help") {
-            std::cout << "usage: suka [--check] FILE\n"
-                      << "       suka [--check] --stdin [--base-dir DIRECTORY]\n";
+            std::cout << "usage: rin [--check] FILE\n"
+                      << "       rin [--check] --stdin [--base-dir DIRECTORY]\n";
             return 0;
         }
-        if (!positional && argument == "--version") { std::cout << suka::version << '\n'; return 0; }
+        if (!positional && argument == "--version") { std::cout << rin::version << '\n'; return 0; }
         if (!positional && argument == "--check") check = true;
         else if (!positional && argument == "--stdin") standard_input = true;
         else if (!positional && argument == "--base-dir") {
@@ -30,9 +30,9 @@ int main(int argc, char* argv[]) {
     }
     if ((standard_input && !path.empty()) || (!standard_input && path.empty()) ||
         (!standard_input && !base_directory.empty())) return usage();
-    suka::pass::detail::Result result{0, {}, {}};
+    rin::pass::detail::Result result{0, {}, {}};
     try {
-        using namespace suka::pass::detail;
+        using namespace rin::pass::detail;
         Program program;
         if (standard_input) {
             const std::string source{std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>()};

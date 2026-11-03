@@ -1,2 +1,2 @@
 * text=auto eol=lf
-tests/fixtures/prover/*crlf*.suka -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+tests/fixtures/prover/*crlf*.rin -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

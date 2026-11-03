@@ -1,17 +1,17 @@
 {
-  "name": "Suka",
-  "scopeName": "source.suka",
+  "name": "Rin",
+  "scopeName": "source.rin",
   "patterns": [
     {
       "include": "#comment"
     },
     {
-      "name": "string.quoted.double.suka",
+      "name": "string.quoted.double.rin",
       "begin": "\"",
       "end": "\"|$",
       "patterns": [
         {
-          "name": "constant.character.escape.suka",
+          "name": "constant.character.escape.rin",
           "match": "\\\\."
         }
       ]
@@ -20,10 +20,10 @@
       "match": "^\\s*(import)\\s+((?:(?!=>|->)[^\\s:,()=|&#\"<>])+)",
       "captures": {
         "1": {
-          "name": "keyword.control.import.suka"
+          "name": "keyword.control.import.rin"
         },
         "2": {
-          "name": "entity.name.namespace.suka"
+          "name": "entity.name.namespace.rin"
         }
       }
     },
@@ -31,28 +31,28 @@
       "match": "^\\s*(verify)\\s+((?:(?!=>|->)[^\\s:,()=|&#\"<>])+)\\s*(=)",
       "captures": {
         "1": {
-          "name": "keyword.control.verify.suka"
+          "name": "keyword.control.verify.rin"
         },
         "2": {
-          "name": "entity.name.label.suka"
+          "name": "entity.name.label.rin"
         },
         "3": {
-          "name": "keyword.operator.assignment.suka"
+          "name": "keyword.operator.assignment.rin"
         }
       }
     },
     {
-      "name": "meta.declaration.quantifier.suka",
+      "name": "meta.declaration.quantifier.rin",
       "begin": "(?<![^\\s:,()=|&#\"<>])(all|exists)(?=\\s+(?:(?!=>|->)[^\\s:,()=|&#\"<>])+)",
       "beginCaptures": {
         "1": {
-          "name": "keyword.control.quantifier.suka"
+          "name": "keyword.control.quantifier.rin"
         }
       },
       "end": "=>|$",
       "endCaptures": {
         "0": {
-          "name": "keyword.operator.quantifier.suka"
+          "name": "keyword.operator.quantifier.rin"
         }
       },
       "patterns": [
@@ -63,11 +63,11 @@
           "include": "#type"
         },
         {
-          "name": "variable.parameter.suka",
+          "name": "variable.parameter.rin",
           "match": "(?:(?!=>|->)[^\\s:,()=|&#\"<>])+"
         },
         {
-          "name": "punctuation.separator.suka",
+          "name": "punctuation.separator.rin",
           "match": ","
         }
       ]
@@ -76,32 +76,32 @@
       "include": "#type"
     },
     {
-      "name": "entity.name.function.suka",
+      "name": "entity.name.function.rin",
       "match": "(?:(?!=>|->)[^\\s:,()=|&#\"<>])+(?=\\s*\\()"
     },
     {
       "include": "#number"
     },
     {
-      "name": "keyword.operator.suka",
+      "name": "keyword.operator.rin",
       "match": "=>|->|[=&]"
     },
     {
-      "name": "punctuation.separator.suka",
+      "name": "punctuation.separator.rin",
       "match": "[,:]"
     },
     {
-      "name": "punctuation.section.group.suka",
+      "name": "punctuation.section.group.rin",
       "match": "[()]"
     },
     {
-      "name": "variable.other.constant.suka",
+      "name": "variable.other.constant.rin",
       "match": "(?:(?!=>|->)[^\\s:,()=|&#\"<>])+"
     }
   ],
   "repository": {
     "comment": {
-      "name": "comment.line.number-sign.suka",
+      "name": "comment.line.number-sign.rin",
       "begin": "#",
       "end": "$"
     },
@@ -109,15 +109,15 @@
       "match": "(:)\\s*((?:(?!=>|->)[^\\s:,()=|&#\"<>])+)",
       "captures": {
         "1": {
-          "name": "punctuation.separator.type.suka"
+          "name": "punctuation.separator.type.rin"
         },
         "2": {
-          "name": "entity.name.type.suka"
+          "name": "entity.name.type.rin"
         }
       }
     },
     "number": {
-      "name": "constant.numeric.suka",
+      "name": "constant.numeric.rin",
       "match": "(?<![^\\s:,()=|&#\"<>])[0-9]+(?![^\\s:,()=|&#\"<>])"
     }
   }

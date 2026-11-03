@@ -33,7 +33,7 @@ def build():
     ET.SubElement(metadata, 'DisplayName').text = PACKAGE['displayName']
     ET.SubElement(metadata, 'Description', {'{http://www.w3.org/XML/1998/namespace}space': 'preserve'}).text = PACKAGE['description']
     ET.SubElement(metadata, 'Categories').text = ','.join(PACKAGE['categories'])
-    ET.SubElement(metadata, 'Tags').text = 'suka,language,lsp'
+    ET.SubElement(metadata, 'Tags').text = 'rin,language,lsp'
     properties = ET.SubElement(metadata, 'Properties')
     for name, value in {
         'Microsoft.VisualStudio.Code.Engine': PACKAGE['engines']['vscode'],

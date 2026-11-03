@@ -1,10 +1,10 @@
-# Suka 语法
+# Rin 语法
 
-Suka 使用 UTF-8 文本，文件扩展名为 `.suka`。每行一条语句；空行和 `#` 后的注释不参与证明。顶层语句不缩进，`all` 块内使用一致缩进，一个 Tab 按四个空格计。
+Rin 使用 UTF-8 文本，文件扩展名为 `.rin`。每行一条语句；空行和 `#` 后的注释不参与证明。顶层语句不缩进，`all` 块内使用一致缩进，一个 Tab 按四个空格计。
 
 ## 事实与项
 
-```suka
+```rin
 苏格拉底: human
 柏拉图: human
 史努比: dog
@@ -16,7 +16,7 @@ teacher(苏格拉底, 柏拉图)
 
 名称可以使用中文。项可以是名称，也可以是嵌套构造项：
 
-```suka
+```rin
 succ(0)
 succ(succ(0))
 pair(苏格拉底, 柏拉图)
@@ -26,7 +26,7 @@ pair(苏格拉底, 柏拉图)
 
 ## 全称规则
 
-```suka
+```rin
 all n: nat => succ(n): nat
 
 all x: human =>
@@ -47,7 +47,7 @@ all x: human, y: human =>
 
 `different(a, b)` 比较项结构，`less(a, b)` / `less_equal(a, b)` 比较 `uint64_t` 数值。它们可作为规则前提和无存在变量的验证目标，变量由关系与类型条件绑定。内建比较由证明器求值；事实、规则结论和类型名使用普通谓词。符号或构造项参与数值比较时，该比较不成立。
 
-```suka
+```rin
 first: node
 second: node
 
@@ -60,7 +60,7 @@ verify SAME = different(first, first)
 
 ## 存在规则与查询
 
-```suka
+```rin
 all x: human =>
     exists m => mother(m, x)
 
@@ -79,7 +79,7 @@ all x: human =>
 
 标签放在 `verify` 后面，用 `=` 与目标分隔：
 
-```suka
+```rin
 verify P1 = 柏拉图: mortal
 verify P2 = respect(柏拉图, 苏格拉底)
 verify P3 = exists m => mother(m, 苏格拉底)
@@ -96,22 +96,22 @@ verify P1 PASS
 
 同目录文件可以互相导入：
 
-```suka
+```rin
 import facts
 import rules
 
 verify P1 = 柏拉图: mortal
 ```
 
-`import` 后只写裸模块名，程序自动补上 `.suka` 后缀。文件相对于**包含这条 import 的文件所在目录**解析，与运行命令时的工作目录无关。
+`import` 后只写裸模块名，程序自动补上 `.rin` 后缀。文件相对于**包含这条 import 的文件所在目录**解析，与运行命令时的工作目录无关。
 
 | 导入语句 | 读取的同目录文件 |
 | --- | --- |
-| `import facts` | `facts.suka` |
-| `import 公理` | `公理.suka` |
-| `import math.base` | `math.base.suka` |
+| `import facts` | `facts.rin` |
+| `import 公理` | `公理.rin` |
+| `import math.base` | `math.base.rin` |
 
-模块名使用中文、字母等名称字符，可包含内部的点。导入读取同目录的 `.suka` 文件；CLI 文件路径和项目目录支持空格。
+模块名使用中文、字母等名称字符，可包含内部的点。导入读取同目录的 `.rin` 文件；CLI 文件路径和项目目录支持空格。
 
 导入会递归展开，整个程序的事实和规则统一推理。同一文件只加载一次，包括重复导入和菱形导入。导入中的 `verify` 也会执行，顺序为首次展开时出现的顺序。循环导入、文件缺失或导入文件语法错误会报告错误，并保留出错文件的位置。
 

@@ -8,7 +8,7 @@ import unittest
 from support import FIXTURES, ROOT, assert_result, run_cli
 
 
-BINARY = ROOT / "build" / "suka"
+BINARY = ROOT / "build" / "rin"
 if __name__ == "__main__" and len(sys.argv) > 1 and not sys.argv[1].startswith("-"):
     BINARY = Path(sys.argv.pop(1)).resolve()
 PROVER = FIXTURES / "prover"
@@ -16,14 +16,14 @@ PROVER = FIXTURES / "prover"
 
 class ProverTests(unittest.TestCase):
     def test_source_fixtures(self):
-        fixtures = sorted((PROVER / "cases").glob("*.suka"))
+        fixtures = sorted((PROVER / "cases").glob("*.rin"))
         self.assertTrue(fixtures)
         for fixture in fixtures:
             with self.subTest(fixture=fixture.stem):
                 assert_result(self, run_cli(BINARY, fixture), fixture)
 
     def test_main_example(self):
-        result = run_cli(BINARY, ROOT / ".suka" / "main.suka", cwd=ROOT)
+        result = run_cli(BINARY, ROOT / ".rin" / "main.rin", cwd=ROOT)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout,
                          "verify P1 PASS\nverify P2 PASS\nverify P3 PASS\n"
@@ -32,7 +32,7 @@ class ProverTests(unittest.TestCase):
             self.assertIn("limit", result.stderr.lower())
 
     def test_unicode_comments_and_crlf(self):
-        fixture = PROVER / "unicode_comments_and_crlf.suka"
+        fixture = PROVER / "unicode_comments_and_crlf.rin"
         content = fixture.read_bytes()
         self.assertIn(b"\r\n", content)
         self.assertNotIn(b"\n", content.replace(b"\r\n", b""))
@@ -40,7 +40,7 @@ class ProverTests(unittest.TestCase):
 
     def test_missing_file_is_an_error(self):
         with tempfile.TemporaryDirectory() as directory:
-            result = run_cli(BINARY, Path(directory) / "missing.suka")
+            result = run_cli(BINARY, Path(directory) / "missing.rin")
         self.assertEqual(result.returncode, 2, result.stderr)
         self.assertTrue(result.stderr.strip())
 

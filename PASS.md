@@ -1,19 +1,19 @@
-# SUKA C++ 证明接口
+# Rin C++ 证明接口
 
-`Suka::Pass` 是 C++17 头文件库。包含 [`suka/pass.h`](include/suka/pass.h) 后，可直接编译规则并提交事实与证明目标。SUKA 负责通用推理；调用方维护领域规则、事实来源和证明义务。
+`Rin::Pass` 是 C++17 头文件库。包含 [`rin/pass.h`](include/rin/pass.h) 后，可直接编译规则并提交事实与证明目标。Rin 负责通用推理；调用方维护领域规则、事实来源和证明义务。
 
 ## 第一次调用
 
 先用 `run` 执行一段完整规则：
 
 ```cpp
-#include <suka/pass.h>
+#include <rin/pass.h>
 
-auto decision = suka::pass::run(R"suka(
+auto decision = rin::pass::run(R"rin(
 alice: person
 all x: person => known(x)
 verify PERSON = known(alice)
-)suka");
+)rin");
 ```
 
 `decision.verdict` 为 `Pass`、`Fail`、`Unknown` 或 `Error`，`explanation` 包含目标结果或错误位置。接受候选方案时检查 `verdict == Verdict::Pass`。
@@ -23,7 +23,7 @@ verify PERSON = known(alice)
 重复证明使用 `Program`。构造时解析规则；`check` 接收结构化事实与目标，复用已解析的规则。每次调用分别推理：
 
 ```cpp
-using namespace suka::pass;
+using namespace rin::pass;
 const Program rules("all x: person => known(x)\n");
 
 const Term alice{"alice"};
@@ -41,10 +41,10 @@ auto decision = rules.check(
 `less` 和 `less_equal` 直接比较 `uint64_t` 项。调用方提交原始数值，规则表达要验证的关系：
 
 ```cpp
-const Program bounds(R"suka(
+const Program bounds(R"rin(
 all x: item, a: number, b: number =>
     interval(x, a, b) & less_equal(a, b) -> ordered(x)
-)suka");
+)rin");
 const Term item{"batch"}, first{std::uint64_t{2}}, last{std::uint64_t{8}};
 auto decision = bounds.check(
     {{"item", {item}}, {"number", {first}}, {"number", {last}},
@@ -59,19 +59,19 @@ auto decision = bounds.check(
 作为源码子项目使用：
 
 ```cmake
-add_subdirectory(path/to/suka)
-target_link_libraries(my_validator PRIVATE Suka::Pass)
+add_subdirectory(path/to/rin)
+target_link_libraries(my_validator PRIVATE Rin::Pass)
 ```
 
-也可安装后使用 `find_package(Suka CONFIG REQUIRED)`：
+也可安装后使用 `find_package(Rin CONFIG REQUIRED)`：
 
 ```sh
 cmake -S . -B build/cmake -DCMAKE_BUILD_TYPE=Release
 cmake --build build/cmake
 ctest --test-dir build/cmake --output-on-failure
-cmake --install build/cmake --prefix /path/to/suka-sdk
+cmake --install build/cmake --prefix /path/to/rin-sdk
 ```
 
-`Suka::Pass` 是 CMake `INTERFACE` target，传递头文件目录与 C++17 要求。顶层构建默认生成独立 CLI。`SUKA_BUILD_SHARED=ON` 额外生成跨语言调用使用的 C ABI 共享库；子项目的 CLI、共享库、测试和安装选项默认关闭。CLI、嵌入接口与 C ABI 共用头文件证明核心。
+`Rin::Pass` 是 CMake `INTERFACE` target，传递头文件目录与 C++17 要求。顶层构建默认生成独立 CLI。`RIN_BUILD_SHARED=ON` 额外生成跨语言调用使用的 C ABI 共享库；子项目的 CLI、共享库、测试和安装选项默认关闭。CLI、嵌入接口与 C ABI 共用头文件证明核心。
 
 ASK 的领域规则与验证入口见 [ASK 规则证明与计划校验](../ask/docs/规则证明与计划校验.md)。

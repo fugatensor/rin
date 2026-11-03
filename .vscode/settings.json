@@ -1,4 +1,4 @@
 {
-  "suka.executable": "./build/suka",
-  "suka.diagnostics.enable": true
+  "rin.executable": "./build/rin",
+  "rin.diagnostics.enable": true
 }

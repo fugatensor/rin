@@ -59,19 +59,19 @@ function loadExtension(host) {
 
 // This tests the extension API adapter; a real graphical extension host is separate.
 test('run command saves the selected file and supplies an argument array', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'suka-extension '));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rin-extension '));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const host = mockHost(directory);
   let saves = 0;
-  const document = { uri: new host.Uri(path.join(directory, 'selected ; 文档.suka')),
-    languageId: 'suka', version: 1, getText: () => 'Alice:human', save: async () => { saves++; return true; } };
+  const document = { uri: new host.Uri(path.join(directory, 'selected ; 文档.rin')),
+    languageId: 'rin', version: 1, getText: () => 'Alice:human', save: async () => { saves++; return true; } };
   host.documents.push(document);
   const extension = loadExtension(host);
   extension.activate({ subscriptions: [], asAbsolutePath: name => path.resolve(__dirname, '..', name) });
-  await host.commands.get('suka.run')(document.uri);
+  await host.commands.get('rin.run')(document.uri);
   assert.equal(host.tasks.length, 0); // Untrusted workspace does not launch a process.
   host.vscode.workspace.isTrusted = true;
-  await host.commands.get('suka.run')(document.uri);
+  await host.commands.get('rin.run')(document.uri);
   assert.equal(saves, 1);
   assert.equal(host.tasks.length, 1);
   assert.equal(host.tasks[0].execution.executable, path.join(directory, 'build/my compiler;literal'));
@@ -81,10 +81,10 @@ test('run command saves the selected file and supplies an argument array', async
 });
 
 test('trust transition starts stdio server and synchronizes previously open documents', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'suka-extension '));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rin-extension '));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const host = mockHost(directory);
-  const document = { uri: new host.Uri(path.join(directory, 'main.suka')), languageId: 'suka', version: 1,
+  const document = { uri: new host.Uri(path.join(directory, 'main.rin')), languageId: 'rin', version: 1,
     getText: () => 'Alice:human\nverify P = Alice:human\n' };
   host.documents.push(document);
   const extension = loadExtension(host);
@@ -103,14 +103,14 @@ test('trust transition starts stdio server and synchronizes previously open docu
 test('manifest, grammar and snippets register the final syntax', () => {
   const manifest = require('../package.json');
   assert.equal(manifest.main, './extension.js');
-  assert.equal(manifest.contributes.menus['editor/title'][0].command, 'suka.run');
-  assert.equal(manifest.contributes.configuration.properties['suka.executable'].default, 'suka');
-  const snippets = require('../snippets/suka.json');
+  assert.equal(manifest.contributes.menus['editor/title'][0].command, 'rin.run');
+  assert.equal(manifest.contributes.configuration.properties['rin.executable'].default, 'rin');
+  const snippets = require('../snippets/rin.json');
   assert.match(snippets['Universal rule'].body[0], /=>$/);
   assert.match(snippets.Verification.body, /^verify .* = /);
   assert.match(snippets['Existential conclusion'].body, /^exists .* => /);
-  const grammar = require('../syntaxes/suka.tmLanguage.json');
-  assert.equal(grammar.scopeName, 'source.suka');
+  const grammar = require('../syntaxes/rin.tmLanguage.json');
+  assert.equal(grammar.scopeName, 'source.rin');
   for (const pattern of grammar.patterns) {
     for (const key of ['match', 'begin', 'end']) if (pattern[key]) assert.doesNotThrow(() => new RegExp(pattern[key], 'u'));
   }

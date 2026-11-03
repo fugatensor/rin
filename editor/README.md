@@ -1,19 +1,19 @@
-# Suka for VS Code
+# Rin for VS Code
 
-提供 `.suka` 语法高亮、片段、补全、语法诊断和编辑器右上角运行按钮。插件内置一个通过标准输入输出通信的 LSP 服务，无 npm 运行依赖；VS Code 使用自带的 Node 运行它。
+提供 `.rin` 语法高亮、片段、补全、语法诊断和编辑器右上角运行按钮。插件内置一个通过标准输入输出通信的 LSP 服务，无 npm 运行依赖；VS Code 使用自带的 Node 运行它。
 
 ## 安装和配置
 
-1. 在 VS Code 的扩展页面选择 **Install from VSIX…**，安装 `dist/suka-language-0.1.1.vsix`。也可运行 `code --install-extension dist/suka-language-0.1.1.vsix`。
-2. 将编译好的 `suka` 加入 PATH，或配置 `suka.executable`。
-3. 打开 `.suka` 文件，点击右上角的 ▶ **Run Suka File**。程序先保存文件，再在任务终端运行。
+1. 在 VS Code 的扩展页面选择 **Install from VSIX…**，安装 `dist/rin-language-0.1.1.vsix`。也可运行 `code --install-extension dist/rin-language-0.1.1.vsix`。
+2. 将编译好的 `rin` 加入 PATH，或配置 `rin.executable`。
+3. 打开 `.rin` 文件，点击右上角的 ▶ **Run Rin File**。程序先保存文件，再在任务终端运行。
 
 从项目根目录打开工作区时，可以这样配置：
 
 ```json
 {
-  "suka.executable": "./build/suka",
-  "suka.diagnostics.enable": true
+  "rin.executable": "./build/rin",
+  "rin.diagnostics.enable": true
 }
 ```
 
@@ -23,7 +23,7 @@
 
 ## 支持的语法
 
-```suka
+```rin
 import facts
 
 all x,y:human =>
@@ -37,7 +37,7 @@ all n:nat => succ(n):nat
 verify P2 = succ(succ(0)):nat
 ```
 
-导入写为 `import facts`，自动读取同目录 `facts.suka`；不写引号和后缀。输入 `import ` 后可补全同目录模块名。
+导入写为 `import facts`，自动读取同目录 `facts.rin`；不写引号和后缀。输入 `import ` 后可补全同目录模块名。
 
 补全包括 `all`、`exists`、`verify`、`import` 等关键字，`=>`、`->`、`&` 等符号，以及当前文件和递归同目录导入中的对象、变量、类型、关系和构造项。支持中文名称，也会读取编辑器中尚未保存的导入文件。片段输入前缀包括 `all`、`all2`、`exists`、`verify`、`verifyexists`、`import`、`nat`。
 
@@ -50,10 +50,10 @@ verify P2 = succ(succ(0)):nat
 编辑停顿后，LSP 将当前未保存文本交给：
 
 ```text
-suka --check --stdin --base-dir 当前文件目录
+rin --check --stdin --base-dir 当前文件目录
 ```
 
-只解析和检查语法，不运行证明。`<source>:行号: 信息` 显示在当前文档，导入文件的错误显示在对应文件。`suka.diagnostics.enable` 可关闭检查；找不到编译器时会显示配置提示，补全仍可使用。
+只解析和检查语法，不运行证明。`<source>:行号: 信息` 显示在当前文档，导入文件的错误显示在对应文件。`rin.diagnostics.enable` 可关闭检查；找不到编译器时会显示配置提示，补全仍可使用。
 
 编译器读取导入文件的磁盘内容，因此检查涉及的导入文件时应先保存这些文件；当前文件无需先保存。检查超过 5 秒会被取消，旧文档版本的诊断不会覆盖新版本。
 
@@ -69,7 +69,7 @@ node server/server.js
 
 ```json
 {
-  "executable": "suka",
+  "executable": "rin",
   "diagnostics": { "enable": true }
 }
 ```
@@ -88,11 +88,11 @@ python3 scripts/package.py
 可选的真实编译器集成测试：
 
 ```sh
-SUKA_TEST_CLI=../build/suka node --test tests/protocol.test.js
+RIN_TEST_CLI=../build/rin node --test tests/protocol.test.js
 ```
 
-测试覆盖 UTF-8 分帧、LSP 生命周期、导入与未保存内容补全、检查器参数和诊断更新。模拟检查器的两项测试在 Windows 跳过，可设置 `SUKA_TEST_CLI` 检查实际编译器。打包只用 Python 标准库，生成并校验包含清单和运行文件的 VSIX；不发布到 Marketplace。
+测试覆盖 UTF-8 分帧、LSP 生命周期、导入与未保存内容补全、检查器参数和诊断更新。模拟检查器的两项测试在 Windows 跳过，可设置 `RIN_TEST_CLI` 检查实际编译器。打包只用 Python 标准库，生成并校验包含清单和运行文件的 VSIX；不发布到 Marketplace。
 
-真实高亮测试额外使用开发工具 `vscode-textmate`、`vscode-oniguruma`。可将它们安装在临时目录，通过 `NODE_PATH` 指向其 `node_modules`，并用 `SUKA_VSCODE_THEME_DIR` 指向 VS Code 的 `theme-defaults/themes` 目录，再运行上述 Node 测试。未提供这些测试工具时，对应真实分词和主题测试会跳过；插件运行不依赖这些 npm 包。
+真实高亮测试额外使用开发工具 `vscode-textmate`、`vscode-oniguruma`。可将它们安装在临时目录，通过 `NODE_PATH` 指向其 `node_modules`，并用 `RIN_VSCODE_THEME_DIR` 指向 VS Code 的 `theme-defaults/themes` 目录，再运行上述 Node 测试。未提供这些测试工具时，对应真实分词和主题测试会跳过；插件运行不依赖这些 npm 包。
 
 接口依据：[VS Code 扩展贡献点](https://code.visualstudio.com/api/references/contribution-points)、[VS Code API](https://code.visualstudio.com/api/references/vscode-api)、[LSP 3.17](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/)、[VSIX 清单](https://learn.microsoft.com/en-us/visualstudio/extensibility/vsix-extension-schema-2-0-reference)。

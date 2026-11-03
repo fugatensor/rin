@@ -8,11 +8,11 @@ const highlighting = require('./lib/highlight');
 let disposeServer;
 
 function activate(context) {
-  const output = vscode.window.createOutputChannel('Suka Language Server');
-  const diagnostics = vscode.languages.createDiagnosticCollection('suka');
+  const output = vscode.window.createOutputChannel('Rin Language Server');
+  const diagnostics = vscode.languages.createDiagnosticCollection('rin');
   context.subscriptions.push(output, diagnostics);
   const legend = new vscode.SemanticTokensLegend(highlighting.tokenTypes, highlighting.tokenModifiers);
-  context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider({ language: 'suka' }, {
+  context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider({ language: 'rin' }, {
     provideDocumentSemanticTokens(document, cancellation) {
       const builder = new vscode.SemanticTokensBuilder(legend);
       for (const token of highlighting.classify(document.getText())) {
@@ -29,8 +29,8 @@ function activate(context) {
   let started = false;
   const synced = new Map();
   const configuration = () => {
-    const config = vscode.workspace.getConfiguration('suka');
-    let executable = config.get('executable', 'suka');
+    const config = vscode.workspace.getConfiguration('rin');
+    let executable = config.get('executable', 'rin');
     const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (workspace && !path.isAbsolute(executable) && /[\\/]/.test(executable)) executable = path.resolve(workspace, executable);
     return { executable, diagnostics: { enable: config.get('diagnostics.enable', true) } };
@@ -40,9 +40,9 @@ function activate(context) {
     else if (ready) ready.then(() => connection?.notify(method, params)).catch(error => output.appendLine(error.message));
   };
   const open = document => {
-    if (!ready || document.languageId !== 'suka' || synced.has(document.uri.toString())) return;
+    if (!ready || document.languageId !== 'rin' || synced.has(document.uri.toString())) return;
     synced.set(document.uri.toString(), document.version);
-    notify('textDocument/didOpen', { textDocument: { uri: document.uri.toString(), languageId: 'suka',
+    notify('textDocument/didOpen', { textDocument: { uri: document.uri.toString(), languageId: 'rin',
       version: document.version, text: document.getText() } });
   };
   const start = () => {
@@ -64,7 +64,7 @@ function activate(context) {
             item.range.end.line, item.range.end.character);
           const result = new vscode.Diagnostic(range, item.message,
             item.severity === 2 ? vscode.DiagnosticSeverity.Warning : vscode.DiagnosticSeverity.Error);
-          result.source = 'suka';
+          result.source = 'rin';
           return result;
         }));
       } else if (message.method === 'window/logMessage') output.appendLine(message.params.message);
@@ -79,7 +79,7 @@ function activate(context) {
       connection.dispose();
       if (!stopping) {
         output.appendLine(`Language server exited (${code ?? signal}). Reload the window to restart it.`);
-        vscode.window.showWarningMessage('Suka language server stopped. See the Suka Language Server output.');
+        vscode.window.showWarningMessage('Rin language server stopped. See the Rin Language Server output.');
       }
     });
     ready = connection.request('initialize', {
@@ -97,7 +97,7 @@ function activate(context) {
     vscode.workspace.onDidGrantWorkspaceTrust(start),
     vscode.workspace.onDidOpenTextDocument(open),
     vscode.workspace.onDidChangeTextDocument(event => {
-      if (event.document.languageId !== 'suka') return;
+      if (event.document.languageId !== 'rin') return;
       open(event.document);
       const uri = event.document.uri.toString();
       if (synced.get(uri) === event.document.version) return;
@@ -106,7 +106,7 @@ function activate(context) {
         contentChanges: [{ text: event.document.getText() }] });
     }),
     vscode.workspace.onDidSaveTextDocument(document => {
-      if (document.languageId === 'suka') notify('textDocument/didSave', { textDocument: { uri: document.uri.toString() } });
+      if (document.languageId === 'rin') notify('textDocument/didSave', { textDocument: { uri: document.uri.toString() } });
     }),
     vscode.workspace.onDidCloseTextDocument(document => {
       const uri = document.uri.toString();
@@ -114,9 +114,9 @@ function activate(context) {
       diagnostics.delete(document.uri);
     }),
     vscode.workspace.onDidChangeConfiguration(event => {
-      if (event.affectsConfiguration('suka')) notify('workspace/didChangeConfiguration', { settings: { suka: configuration() } });
+      if (event.affectsConfiguration('rin')) notify('workspace/didChangeConfiguration', { settings: { rin: configuration() } });
     }),
-    vscode.languages.registerCompletionItemProvider({ language: 'suka' }, {
+    vscode.languages.registerCompletionItemProvider({ language: 'rin' }, {
       async provideCompletionItems(document, position, token) {
         if (!ready || token.isCancellationRequested) return [];
         try {
@@ -136,28 +136,28 @@ function activate(context) {
         } catch (error) { output.appendLine(error.message); return []; }
       },
     }, ':', '('),
-    vscode.commands.registerCommand('suka.run', async uri => {
+    vscode.commands.registerCommand('rin.run', async uri => {
       if (!vscode.workspace.isTrusted) {
-        vscode.window.showWarningMessage('Trust this workspace before running Suka.'); return;
+        vscode.window.showWarningMessage('Trust this workspace before running Rin.'); return;
       }
       const target = uri instanceof vscode.Uri ? uri : vscode.window.activeTextEditor?.document.uri;
       if (!target) return;
       const document = await vscode.workspace.openTextDocument(target);
-      if (document.languageId !== 'suka') return;
+      if (document.languageId !== 'rin') return;
       if (!await document.save()) return;
       if (document.uri.scheme !== 'file') {
-        vscode.window.showWarningMessage('Save the Suka file to disk before running it.'); return;
+        vscode.window.showWarningMessage('Save the Rin file to disk before running it.'); return;
       }
       const filename = document.uri.fsPath;
-      const task = new vscode.Task({ type: 'suka', file: filename },
+      const task = new vscode.Task({ type: 'rin', file: filename },
         vscode.workspace.getWorkspaceFolder(document.uri) || vscode.TaskScope.Global,
-        `Run ${path.basename(filename)}`, 'suka',
+        `Run ${path.basename(filename)}`, 'rin',
         new vscode.ProcessExecution(configuration().executable, [filename], { cwd: path.dirname(filename) }));
       task.presentationOptions = { reveal: vscode.TaskRevealKind.Always, panel: vscode.TaskPanelKind.Shared, clear: true };
       await vscode.tasks.executeTask(task);
     }),
   );
-  const watcher = vscode.workspace.createFileSystemWatcher('**/*.suka');
+  const watcher = vscode.workspace.createFileSystemWatcher('**/*.rin');
   const changed = (uri, type) => notify('workspace/didChangeWatchedFiles', { changes: [{ uri: uri.toString(), type }] });
   context.subscriptions.push(watcher, watcher.onDidChange(uri => changed(uri, 2)),
     watcher.onDidCreate(uri => changed(uri, 1)), watcher.onDidDelete(uri => changed(uri, 3)));

@@ -34,7 +34,7 @@ function harness(directory) {
       rpc.notify('initialized', {});
       return result;
     },
-    open(uri, text, version = 1) { rpc.notify('textDocument/didOpen', { textDocument: { uri, languageId: 'suka', text, version } }); },
+    open(uri, text, version = 1) { rpc.notify('textDocument/didOpen', { textDocument: { uri, languageId: 'rin', text, version } }); },
     change(uri, text, version = 2) { rpc.notify('textDocument/didChange', { textDocument: { uri, version }, contentChanges: [{ text }] }); },
     async waitFor(predicate, timeout = 4000) {
       const existing = messages.find(predicate);
@@ -61,13 +61,13 @@ function harness(directory) {
   };
 }
 function workspace(t) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'suka 编辑器 '));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'rin 编辑器 '));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
 
 // The mock is itself a real spawned executable, with a path containing spaces.
-// On Windows use SUKA_TEST_CLI for the real compiler test below instead.
+// On Windows use RIN_TEST_CLI for the real compiler test below instead.
 function fakeChecker(directory) {
   const filename = path.join(directory, 'checker ; spaces');
   fs.writeFileSync(filename, `#!${process.execPath}\n` + `
@@ -76,7 +76,7 @@ let text = '';
 process.stdin.setEncoding('utf8').on('data', s => text += s).on('end', () => {
   fs.writeFileSync(${JSON.stringify(path.join(directory, 'args.json'))}, JSON.stringify({ args: process.argv.slice(2), text }));
   if (text.includes('BAD')) { process.stderr.write('<source>:2: 模拟语法错误\\n'); process.exitCode = 2; }
-  else if (text.includes('IMPORT_ERROR')) { process.stderr.write(${JSON.stringify(path.join(directory, 'broken.suka'))} + ':1: imported error\\n'); process.exitCode = 2; }
+  else if (text.includes('IMPORT_ERROR')) { process.stderr.write(${JSON.stringify(path.join(directory, 'broken.rin'))} + ':1: imported error\\n'); process.exitCode = 2; }
 });\n`, { mode: 0o755 });
   return filename;
 }
@@ -102,9 +102,9 @@ test('Content-Length framing handles UTF-8 fragments and adjacent messages', () 
 
 test('LSP initialization, imported completion, full changes, close and shutdown', async t => {
   const directory = workspace(t);
-  fs.writeFileSync(path.join(directory, 'facts.suka'), 'import more\n苏格拉底:human\nteacher(苏格拉底,柏拉图)\n');
-  fs.writeFileSync(path.join(directory, 'more.suka'), 'import facts\n史努比:dog\n');
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
+  fs.writeFileSync(path.join(directory, 'facts.rin'), 'import more\n苏格拉底:human\nteacher(苏格拉底,柏拉图)\n');
+  fs.writeFileSync(path.join(directory, 'more.rin'), 'import facts\n史努比:dog\n');
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
   const h = harness(directory); t.after(() => h.child.kill());
   const init = await h.initialize();
   assert.equal(init.capabilities.textDocumentSync.change, 1);
@@ -136,9 +136,9 @@ test('LSP initialization, imported completion, full changes, close and shutdown'
 
 test('completion reads unsaved imported documents and excludes comments/strings', async t => {
   const directory = workspace(t);
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
-  const imported = pathToFileURL(path.join(directory, 'facts.suka')).href;
-  fs.writeFileSync(path.join(directory, 'facts.suka'), 'Old:oldtype\n');
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
+  const imported = pathToFileURL(path.join(directory, 'facts.rin')).href;
+  fs.writeFileSync(path.join(directory, 'facts.rin'), 'Old:oldtype\n');
   const h = harness(directory); t.after(() => h.child.kill()); await h.initialize();
   h.open(imported, '新对象:unsavedtype\n');
   h.open(uri, 'import facts\n# all\nimport "f\n');
@@ -155,7 +155,7 @@ test('completion reads unsaved imported documents and excludes comments/strings'
 test('checker receives unsaved stdin and base directory, publishes and clears diagnostics', { skip: process.platform === 'win32' }, async t => {
   const directory = workspace(t);
   const executable = fakeChecker(directory);
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
   const h = harness(directory); t.after(() => h.child.kill());
   await h.initialize({ executable });
   h.open(uri, '苏格拉底:human\nBAD\n');
@@ -174,9 +174,9 @@ test('checker receives unsaved stdin and base directory, publishes and clears di
 test('diagnostics attach imported compiler errors to the imported URI', { skip: process.platform === 'win32' }, async t => {
   const directory = workspace(t);
   const executable = fakeChecker(directory);
-  fs.writeFileSync(path.join(directory, 'broken.suka'), 'broken\n');
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
-  const imported = pathToFileURL(path.join(directory, 'broken.suka')).href;
+  fs.writeFileSync(path.join(directory, 'broken.rin'), 'broken\n');
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
+  const imported = pathToFileURL(path.join(directory, 'broken.rin')).href;
   const h = harness(directory); t.after(() => h.child.kill()); await h.initialize({ executable });
   h.open(uri, 'IMPORT_ERROR\n');
   await h.waitFor(message => message.method === 'textDocument/publishDiagnostics' && message.params.uri === imported && message.params.diagnostics[0]?.message === 'imported error');
@@ -189,10 +189,10 @@ test('missing checker is a useful warning and does not break completion', async 
   const directory = workspace(t);
   const h = harness(directory); t.after(() => h.child.kill());
   await h.initialize({ executable: path.join(directory, 'missing-compiler') });
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
   h.open(uri, 'Alice:human\n');
   const message = await h.waitFor(message => message.method === 'textDocument/publishDiagnostics' && message.params.diagnostics[0]?.severity === 2);
-  assert.match(message.params.diagnostics[0].message, /suka\.executable/);
+  assert.match(message.params.diagnostics[0].message, /rin\.executable/);
   const result = await h.rpc.request('textDocument/completion', { textDocument: { uri }, position: { line: 1, character: 0 } });
   assert.ok(result.items.some(item => item.label === 'human'));
   await h.stop();
@@ -201,8 +201,8 @@ test('missing checker is a useful warning and does not break completion', async 
 test('symbol collector does not follow parent-directory imports', t => {
   const directory = workspace(t);
   const childDirectory = path.join(directory, 'sub'); fs.mkdirSync(childDirectory);
-  fs.writeFileSync(path.join(directory, 'private.suka'), 'Private:privateType\n');
-  const document = { uri: pathToFileURL(path.join(childDirectory, 'main.suka')).href, text: 'import ../private\nAlice:human\n' };
+  fs.writeFileSync(path.join(directory, 'private.rin'), 'Private:privateType\n');
+  const document = { uri: pathToFileURL(path.join(childDirectory, 'main.rin')).href, text: 'import ../private\nAlice:human\n' };
   const symbols = collectSymbols(document, new Map(), childDirectory);
   assert.ok(symbols.some(item => item.label === 'human'));
   assert.ok(!symbols.some(item => item.label === 'privateType'));
@@ -210,11 +210,11 @@ test('symbol collector does not follow parent-directory imports', t => {
 
 test('import completion supplies bare module names with UTF-8 and dots', async t => {
   const directory = workspace(t);
-  for (const filename of ['main.suka', 'facts.suka', 'math.base.suka', '基础.suka',
-                          'two words.suka', '.hidden.suka', 'facts.suka.suka', 'other.txt'])
+  for (const filename of ['main.rin', 'facts.rin', 'math.base.rin', '基础.rin',
+                          'two words.rin', '.hidden.rin', 'facts.rin.rin', 'other.txt'])
     fs.writeFileSync(path.join(directory, filename), '');
-  fs.mkdirSync(path.join(directory, 'folder.suka'));
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
+  fs.mkdirSync(path.join(directory, 'folder.rin'));
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
   const h = harness(directory); t.after(() => h.child.kill()); await h.initialize();
   h.open(uri, 'import \n');
   let result = await h.rpc.request('textDocument/completion', { textDocument: { uri }, position: { line: 0, character: 7 } });
@@ -228,20 +228,20 @@ test('import completion supplies bare module names with UTF-8 and dots', async t
 
 test('symbol collector resolves dotted bare modules and ignores retired import syntax', t => {
   const directory = workspace(t);
-  fs.writeFileSync(path.join(directory, 'math.base.suka'), 'Imported:moduleType\n');
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
+  fs.writeFileSync(path.join(directory, 'math.base.rin'), 'Imported:moduleType\n');
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
   const symbols = collectSymbols({ uri, text: 'import math.base\n' }, new Map(), directory);
   assert.ok(symbols.some(item => item.label === 'moduleType'));
-  for (const text of ['import "math.base"\n', 'import math.base.suka\n'])
+  for (const text of ['import "math.base"\n', 'import math.base.rin\n'])
     assert.deepEqual(collectSymbols({ uri, text }, new Map(), directory), []);
 });
 
-test('real Suka checker integration (set SUKA_TEST_CLI)', { skip: !process.env.SUKA_TEST_CLI }, async t => {
+test('real Rin checker integration (set RIN_TEST_CLI)', { skip: !process.env.RIN_TEST_CLI }, async t => {
   const directory = workspace(t);
-  fs.writeFileSync(path.join(directory, 'facts.suka'), '苏格拉底:human\n');
+  fs.writeFileSync(path.join(directory, 'facts.rin'), '苏格拉底:human\n');
   const h = harness(directory); t.after(() => h.child.kill());
-  await h.initialize({ executable: path.resolve(process.env.SUKA_TEST_CLI) });
-  const uri = pathToFileURL(path.join(directory, 'main.suka')).href;
+  await h.initialize({ executable: path.resolve(process.env.RIN_TEST_CLI) });
+  const uri = pathToFileURL(path.join(directory, 'main.rin')).href;
   h.open(uri, 'import facts\nall x:human => exists m => mother(m,x)\nverify M = exists m => mother(m,苏格拉底)\n');
   await h.waitFor(message => message.method === 'textDocument/publishDiagnostics' && message.params.uri === uri && message.params.version === 1 && message.params.diagnostics.length === 0);
   h.change(uri, 'verify M = mother(\n');
