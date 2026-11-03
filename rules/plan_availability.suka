@@ -1,3 +1,0 @@
-# One finite step edge. PASS instantiates @FROM@ and @TO@ with s0, s1, ... .
-# `available` is a positive fact; the rule preserves a buffer after its write.
-all b: buffer => available(b, @FROM@) -> available(b, @TO@)

@@ -124,7 +124,7 @@ python3 examples/ffi.py .suka/main.suka
 
 ## PASS 库
 
-`Suka::Pass` 将执行计划和缓冲区复用候选交给 `.suka` 规则证明。`checkPlan` 验证每步读取与公开输出的可用性，`checkReuse` 验证给定复用候选；只有 `Pass` 允许调用方采用。接口、规则、证明边界及 CMake 接入见 [PASS.md](PASS.md)。
+`Suka::Pass` 提供 `suka::pass::run`，接受调用方编写的 `.suka` 规则、事实和验证目标，并返回证明结果。接口、证明边界及 CMake 接入见 [PASS.md](PASS.md)。
 
 ## VS Code 与 LSP
 

@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <string_view>
 
 namespace {
 void require(bool condition, const std::string& message) {
@@ -11,65 +12,48 @@ void require(bool condition, const std::string& message) {
 }
 
 int main() {
-    using suka::pass::Plan;
-    using suka::pass::PlanStep;
-    using suka::pass::ReuseCandidate;
     using suka::pass::Verdict;
-    using suka::pass::checkPlan;
-    using suka::pass::checkReuse;
+    using suka::pass::run;
 
-    Plan chain{3, {0}, {2}, {{{0}, {1}}, {{1}, {2}}}};
-    require(checkPlan(chain).verdict == Verdict::Pass, "producer chain should prove all reads and final output");
-    Plan premature = chain;
-    premature.steps[0].inputs = {1};
-    auto decision = checkPlan(premature);
-    require(decision.verdict == Verdict::Fail && decision.explanation.find("READ_0_0 FAIL") != std::string::npos,
-            "a read before its write should fail its named proof obligation");
-    Plan missing = chain;
-    missing.public_outputs = {0, 2};
-    require(checkPlan(missing).verdict == Verdict::Pass, "a public input remains available as a public output");
-    missing.public_outputs = {0, 1, 2};
-    require(checkPlan(missing).verdict == Verdict::Pass, "all produced buffers remain available");
-    Plan unwritten = chain;
-    unwritten.buffer_count = 4;
-    unwritten.public_outputs = {3};
-    require(checkPlan(unwritten).verdict == Verdict::Fail, "an unwritten public output must fail");
-    Plan repeated = chain;
-    repeated.steps[1].outputs = {1};
-    require(checkPlan(repeated).verdict == Verdict::Fail, "two writes to one logical buffer must fail");
-    Plan bad_port = chain;
-    bad_port.steps[0].inputs = {3};
-    require(checkPlan(bad_port).verdict == Verdict::Fail, "out of range port must fail");
-    Plan unproduced{2, {0}, {0}, {}};
-    require(checkPlan(unproduced).verdict == Verdict::Fail, "unreferenced unproduced buffer must fail");
-    Plan vacuous{};
-    require(checkPlan(vacuous).verdict == Verdict::Fail, "empty plan must fail");
-    Plan identity{1, {0}, {0}, {}};
-    require(checkPlan(identity).verdict == Verdict::Pass, "a public input may be returned directly");
+    const auto proven = run(
+        "first: node\n"
+        "second: node\n"
+        "all a: node, b: node =>\n"
+        "    different(a, b) -> distinct(a, b)\n"
+        "verify PAIR = distinct(first, second)\n");
+    require(proven.verdict == Verdict::Pass &&
+                proven.explanation.find("verify PAIR PASS") != std::string::npos,
+            "generic rule proof should pass its named obligation");
 
-    Plan long_plan{1, {0}, {0}, std::vector<PlanStep>(300)};
-    long_plan.steps.back().inputs = {0};
-    require(checkPlan(long_plan).verdict == Verdict::Pass,
-            "a long finite schedule should prove availability without exceeding inference rounds");
+    const auto unproved = run("first: node\nverify MISSING = distinct(first, second)\n");
+    require(unproved.verdict == Verdict::Fail &&
+                unproved.explanation.find("verify MISSING FAIL") != std::string::npos,
+            "finite rules should report an unproved obligation");
 
-    ReuseCandidate reuse{1, 2, 128, 64, true, false, true, true, true, true};
-    require(checkReuse(reuse).verdict == Verdict::Pass, "ordered local reuse should prove");
-    reuse.next_first_use_step = 1;
-    require(checkReuse(reuse).verdict == Verdict::Fail, "overlapping local intervals must fail");
-    reuse.same_submission = false;
-    require(checkReuse(reuse).verdict == Verdict::Fail, "unfinished prior submission must fail");
-    reuse.prior_completion_finished = true;
-    require(checkReuse(reuse).verdict == Verdict::Pass, "completed prior submission should prove");
-    reuse.output_released = false;
-    require(checkReuse(reuse).verdict == Verdict::Fail, "held public output must fail");
-    reuse.output_released = true;
-    reuse.same_allocation_domain = false;
-    require(checkReuse(reuse).verdict == Verdict::Fail, "foreign allocation domain must fail");
-    reuse.same_allocation_domain = true;
-    reuse.allocator_owned = false;
-    require(checkReuse(reuse).verdict == Verdict::Fail, "foreign allocator storage must fail");
-    reuse.allocator_owned = true;
-    reuse.next_size_bytes = 256;
-    require(checkReuse(reuse).verdict == Verdict::Fail, "insufficient capacity must fail");
-    std::cout << "SUKA pass legality proofs passed\n";
+    const auto limited = run(
+        "seed: item\n"
+        "all x: item => succ(x): item\n"
+        "verify OPEN = missing(seed)\n");
+    require(limited.verdict == Verdict::Unknown &&
+                limited.explanation.find("verify OPEN UNKNOWN") != std::string::npos,
+            "unbounded derivation should remain unknown at the inference limit");
+
+    const auto malformed = run("verify BAD = broken(\n");
+    require(malformed.verdict == Verdict::Error,
+            "malformed proof source should report an error");
+
+    std::string nul_source = "verify GOOD = different(a,b)\n";
+    nul_source.push_back('\0');
+    nul_source += "verify BAD = broken(\n";
+    const auto truncated = run(std::string_view(nul_source.data(), nul_source.size()));
+    require(truncated.verdict == Verdict::Error &&
+                truncated.explanation.find("NUL") != std::string::npos,
+            "embedded NUL must not hide an unparsed obligation");
+
+    const std::string wrapped = "verify GOOD = different(a,b)\nverify BAD = broken(\n";
+    const auto slice = run(std::string_view(wrapped.data(), wrapped.find("verify BAD")));
+    require(slice.verdict == Verdict::Pass,
+            "string_view length must define the complete proof source");
+
+    std::cout << "SUKA generic proof API passed\n";
 }

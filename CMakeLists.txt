@@ -15,18 +15,7 @@ if(SUKA_BUILD_CLI AND NOT SUKA_BUILD_SHARED)
     message(FATAL_ERROR "SUKA_BUILD_CLI requires SUKA_BUILD_SHARED")
 endif()
 
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/rules/buffer_reuse.suka"
-    "${CMAKE_CURRENT_SOURCE_DIR}/rules/plan_availability.suka")
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/rules/buffer_reuse.suka" SUKA_BUFFER_REUSE_RULES)
-file(READ "${CMAKE_CURRENT_SOURCE_DIR}/rules/plan_availability.suka" SUKA_PLAN_AVAILABILITY_RULES)
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
-configure_file(src/buffer_reuse_rules.h.in
-    "${CMAKE_CURRENT_BINARY_DIR}/generated/buffer_reuse_rules.h" @ONLY)
-configure_file(src/plan_availability_rules.h.in
-    "${CMAKE_CURRENT_BINARY_DIR}/generated/plan_availability_rules.h" @ONLY)
-
-add_library(suka_pass STATIC src/pass.cpp src/plan_pass.cpp src/suka.cpp)
+add_library(suka_pass STATIC src/pass.cpp src/suka.cpp)
 add_library(Suka::Pass ALIAS suka_pass)
 set_target_properties(suka_pass PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Pass)
 target_compile_features(suka_pass PUBLIC cxx_std_17)
@@ -34,7 +23,6 @@ target_compile_definitions(suka_pass PRIVATE SUKA_BUILDING_LIBRARY)
 target_include_directories(suka_pass PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_include_directories(suka_pass PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
 if(SUKA_BUILD_SHARED)
     add_library(suka_shared SHARED src/suka.cpp)
@@ -81,8 +69,6 @@ if(SUKA_INSTALL)
     endif()
     install(FILES include/suka.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     install(FILES include/suka/pass.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/suka)
-    install(FILES rules/buffer_reuse.suka rules/plan_availability.suka
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/suka/rules)
     install(EXPORT SukaTargets NAMESPACE Suka::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Suka)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SukaConfig.cmake"
