@@ -1,14 +1,15 @@
 
-verify LEGACY = exists child -> mortal
+verify JOIN = exists x => child_mortal(x)
 verify RELATIONAL = exists m => mortal(m)
 all x:person =>
     x : mortal
 all x:child =>
     x : person
+    mortal(x) -> child_mortal(x)
 all x:seed =>
     exists m => child(m)
 original : seed
 
 # expect-status: 0
-# expect-output: verify LEGACY PASS
+# expect-output: verify JOIN PASS
 # expect-output: verify RELATIONAL PASS

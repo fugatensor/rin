@@ -1,5 +1,5 @@
 
-type nat = 0 | exists(nat)
+exists(0) : nat
 verify CONSTRUCTOR = exists(0) : nat
 0 : item
 exists(0)

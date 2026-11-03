@@ -1,3 +1,0 @@
-type tree = node(tree, missing)
-
-# expect-status: 2

@@ -1,4 +1,0 @@
-type nat = 0 | succ(nat)
-nat(foo)
-
-# expect-status: 2

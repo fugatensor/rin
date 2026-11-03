@@ -1,4 +1,5 @@
-type node = first | second
+first: node
+second: node
 edge(first, second)
 edge(first, first)
 

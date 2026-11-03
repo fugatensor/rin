@@ -1,3 +1,0 @@
-type nat = succ(nat
-
-# expect-status: 2

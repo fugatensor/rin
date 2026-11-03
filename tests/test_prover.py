@@ -5,7 +5,7 @@ import sys
 import tempfile
 import unittest
 
-from support import FIXTURES, ROOT, assert_result, read_source, run_cli
+from support import FIXTURES, ROOT, assert_result, run_cli
 
 
 BINARY = ROOT / "build" / "suka"
@@ -37,17 +37,6 @@ class ProverTests(unittest.TestCase):
         self.assertIn(b"\r\n", content)
         self.assertNotIn(b"\n", content.replace(b"\r\n", b""))
         assert_result(self, run_cli(BINARY, fixture), fixture)
-
-    def test_constructor_limit_in_file_and_stdin_check(self):
-        fixture = PROVER / "constructor_representatives_respect_resource_limit.suka"
-        for mode in ("file", "stdin"):
-            with self.subTest(mode=mode):
-                if mode == "file":
-                    result = run_cli(BINARY, "--check", fixture)
-                else:
-                    result = run_cli(BINARY, "--check", "--stdin", "--base-dir", ROOT,
-                                     source=read_source(fixture))
-                assert_result(self, result, fixture)
 
     def test_missing_file_is_an_error(self):
         with tempfile.TemporaryDirectory() as directory:

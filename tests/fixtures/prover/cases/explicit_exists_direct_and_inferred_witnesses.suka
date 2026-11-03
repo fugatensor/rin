@@ -1,13 +1,16 @@
 
-verify INFERRED = exists dog -> mortal
+verify INFERRED = exists x => dog_mortal(x)
 all x:animal =>
     x : mortal
 all x:dog =>
     x : animal
+    mortal(x) -> dog_mortal(x)
 史努比 : dog
 苏格拉底 : human
 苏格拉底 : wise
-verify DIRECT = exists human -> wise
+all x:human =>
+    wise(x) -> human_wise(x)
+verify DIRECT = exists x => human_wise(x)
 
 # expect-status: 0
 # expect-output: verify INFERRED PASS

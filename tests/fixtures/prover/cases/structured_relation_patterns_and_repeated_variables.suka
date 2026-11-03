@@ -1,5 +1,4 @@
 
-type nat = 0 | succ(nat)
 0 : item
 succ(0) : item
 edge(succ(0), 0)

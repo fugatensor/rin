@@ -1,0 +1,19 @@
+
+Alice : human
+Bob : mortal
+all x:ghost =>
+    x : mortal
+all x:human =>
+    mortal(x) -> human_mortal(x)
+all x:ghost =>
+    mortal(x) -> ghost_mortal(x)
+verify DIFFERENT_OBJECTS = exists x => human_mortal(x)
+verify EMPTY_DOMAIN = exists x => ghost_mortal(x)
+verify UNKNOWN = exists x => unknown(x)
+verify SAME_TYPE = exists x => mortal(x)
+
+# expect-status: 1
+# expect-output: verify DIFFERENT_OBJECTS FAIL
+# expect-output: verify EMPTY_DOMAIN FAIL
+# expect-output: verify UNKNOWN FAIL
+# expect-output: verify SAME_TYPE PASS

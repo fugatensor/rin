@@ -3,13 +3,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { fileURLToPath, pathToFileURL } = require('node:url');
 
-const KEYWORDS = ['all', 'exists', 'verify', 'import', 'type'];
-const OPERATORS = ['=>', '->', ':', '|'];
-const NAME = '[^\\s:,()=|#"<>]+';
+const KEYWORDS = ['all', 'exists', 'verify', 'import'];
+const OPERATORS = ['=>', '->', ':', '&'];
+const NAME = '[^\\s:,()=|&#"<>]+';
 
 function validModule(name) {
   return name && !name.startsWith('.') && !name.endsWith('.suka') &&
-    !/[\s"':,=()|\\/]/u.test(name) && !name.includes('->');
+    !/[\s"':,=()|&\\/]/u.test(name) && !name.includes('->');
 }
 
 function documentDirectory(document, rootDir) {
@@ -39,23 +39,15 @@ function indexText(text, symbols, origin) {
   };
   for (let line of text.split(/\r?\n/)) {
     line = withoutComment(line).trim();
-    if (/^import\s/.test(line)) continue;
+    if (/^import\s/.test(line) || /^type\s+[^\s=]+\s*=/u.test(line)) continue;
     // A verify label is not a type or an object.
     line = line.replace(/^verify\s+[^=]+=\s*/, '');
     for (const match of line.matchAll(new RegExp(NAME, 'gu')))
       put(match[0], 6, '对象或变量', 1);
     for (const match of line.matchAll(new RegExp(`(${NAME})\\s*\\(`, 'gu')))
-      put(match[1], 3, '关系或构造器', 2);
+      put(match[1], 3, '关系或构造项', 2);
     for (const match of line.matchAll(new RegExp(`:\\s*(${NAME})`, 'gu')))
       put(match[1], 7, '类型', 3);
-    const declaration = new RegExp(`^type\\s+(${NAME})\\s*=\\s*(.*)$`, 'u').exec(line);
-    if (declaration) {
-      put(declaration[1], 7, '归纳类型', 4);
-      for (const alternative of declaration[2].split('|')) {
-        const constructor = new RegExp(`^\\s*(${NAME})`, 'u').exec(alternative);
-        if (constructor) put(constructor[1], 4, '构造器', 4);
-      }
-    }
   }
 }
 

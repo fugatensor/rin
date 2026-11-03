@@ -22,10 +22,10 @@ function lexLine(line) {
       emit(start, 'string');
     } else if (line.startsWith('=>', pos) || line.startsWith('->', pos)) {
       pos += 2; emit(start, 'operator');
-    } else if (':,()=|'.includes(line[pos])) {
+    } else if (':,()=&'.includes(line[pos])) {
       pos++; emit(start, 'operator');
     } else {
-      while (pos < line.length && !/\s/u.test(line[pos]) && !':,()=|#"'.includes(line[pos]) &&
+      while (pos < line.length && !/\s/u.test(line[pos]) && !':,()=&#"'.includes(line[pos]) &&
         !line.startsWith('=>', pos) && !line.startsWith('->', pos)) pos++;
       emit(start, 'name');
     }
@@ -55,17 +55,6 @@ function classify(text) {
       keyword(0); overrides.set(1, { type: 'namespace', modifiers: [] });
     } else if (code[0].text === 'verify' && code[2]?.text === '=') {
       keyword(0); declaration(1, 'label');
-    } else if (code[0].text === 'type' && code[2]?.text === '=') {
-      keyword(0); declaration(1, 'type');
-      let level = 0;
-      for (let i = 3; i < code.length; i++) {
-        if (code[i].text === '(') level++;
-        else if (code[i].text === ')') level--;
-        else if (code[i].kind === 'name') overrides.set(i, {
-          type: level > 0 ? 'type' : /^\d+$/u.test(code[i].text) ? 'number' : 'function',
-          modifiers: level > 0 ? [] : ['declaration'],
-        });
-      }
     } else if (code[0].text === 'all' && code[1]?.kind === 'name') {
       allArrow = code.findIndex(token => token.text === '=>');
       keyword(0);

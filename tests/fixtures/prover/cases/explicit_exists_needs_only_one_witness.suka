@@ -2,7 +2,9 @@
 Casper : dog
 Snoopy : dog
 Snoopy : mortal
-verify SOME = exists dog -> mortal
+all x:dog =>
+    mortal(x) -> dog_mortal(x)
+verify SOME = exists x => dog_mortal(x)
 verify NOT_ALL = Casper : mortal
 
 # expect-status: 1

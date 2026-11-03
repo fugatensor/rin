@@ -5,7 +5,9 @@ all x:human =>
     exists m => paternal(m)
 verify MATERNAL = exists m => maternal(m)
 verify PATERNAL = exists m => paternal(m)
-verify SHARED = exists maternal -> paternal
+all x:maternal =>
+    paternal(x) -> shared(x)
+verify SHARED = exists x => shared(x)
 
 # expect-status: 1
 # expect-output: verify MATERNAL PASS

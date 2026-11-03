@@ -1,3 +1,0 @@
-type nat =
-
-# expect-status: 2

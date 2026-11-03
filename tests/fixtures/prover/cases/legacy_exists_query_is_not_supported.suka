@@ -1,0 +1,3 @@
+verify DOG = exists dog -> mortal
+
+# expect-status: 2

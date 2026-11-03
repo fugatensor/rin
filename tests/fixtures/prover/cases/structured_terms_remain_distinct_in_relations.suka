@@ -1,5 +1,4 @@
 
-type nat = 0 | succ(nat)
 pair(succ(0), succ(0))
 pair(succ(succ(0)), 0)
 verify EXACT = pair(succ(0), succ(0))

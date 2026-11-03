@@ -51,22 +51,31 @@ test('real TextMate/Oniguruma scopes cover objects, types, relations, modules, l
   } finally { reg.dispose(); }
 });
 
-test('real tokenizer handles quantifier declarations, constructor declarations and adjacent arrows', tokenizerOptions, async () => {
+test('real tokenizer handles quantifier declarations, retired type syntax and adjacent arrows', tokenizerOptions, async () => {
   const reg = await registry();
   try {
     const grammar = await reg.loadGrammar('source.suka');
     const quantified = scopes(grammar, 'all x,y:human,n:nat => exists m => mother(m,x)');
     for (const name of ['x', 'y', 'n', 'm']) expectScope(quantified, name, 'variable.parameter.suka');
     for (const type of ['human', 'nat']) expectScope(quantified, type, 'entity.name.type.suka');
-    const declaration = scopes(grammar, 'type nat = 0 | succ(nat)');
-    expectScope(declaration, 'succ', 'entity.name.function.constructor.suka');
-    expectScope(declaration, '0', 'constant.numeric.suka');
-    expectScope(declaration, 'nat', 'entity.name.type.suka');
+    const retired = scopes(grammar, 'type nat = 0 | succ(nat)');
+    assert.ok(retired.every(token => !token.scopes.some(scope =>
+      scope === 'meta.declaration.type.suka' || scope === 'entity.name.function.constructor.suka')));
     const compact = scopes(grammar, 'all x:human=>p(x)->q(x)');
     expectScope(compact, '->', 'keyword.operator.suka');
     expectScope(compact, 'p', 'entity.name.function.suka');
     expectScope(compact, 'q', 'entity.name.function.suka');
   } finally { reg.dispose(); }
+});
+
+test('semantic tokens reject retired type declarations and split conjunctions', () => {
+  const old = classify('type nat = 0 | succ(nat)');
+  assert.equal(old.find(token => token.text === 'type').type, 'variable');
+  assert.ok(old.every(token => !token.modifiers.includes('declaration')));
+  const conjunction = lexLine('p(x)&q(x)');
+  assert.equal(conjunction.find(token => token.text === '&').kind, 'operator');
+  assert.equal(classify('all x:human => p(x) & q(x) -> r(x)')
+    .find(token => token.text === '&').type, 'operator');
 });
 
 test('semantic tokens preserve quantified scope and distinguish object names from variables', () => {

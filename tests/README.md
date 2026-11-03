@@ -3,7 +3,7 @@
 在项目根目录运行 `make test`。Python 只负责执行和断言，Suka 输入保存在独立的 `.suka` 文件中。
 
 - `fixtures/prover/cases/`：证明器用例，自动遍历执行；新增文件即可增加一个用例。
-- `fixtures/prover/`：CRLF、构造项资源上限等需要特殊执行方式的用例。
+- `fixtures/prover/`：CRLF 等需要特殊执行方式的用例。
 - `fixtures/cli/`：按项目组织的导入用例，测试时复制到临时目录，验证相对路径、含空格目录和错误位置。
 - `fixtures/ffi/`：C ABI 的源码输入及导入项目。通过读取文件测试源码接口，不在 Python 中内嵌语言代码。
 

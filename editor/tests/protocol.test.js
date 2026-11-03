@@ -112,11 +112,19 @@ test('LSP initialization, imported completion, full changes, close and shutdown'
   h.open(uri, 'import facts\nall x,y:human => teacher(x,y) -> respect(y,x)\nverify P1 = 苏格拉底:human\n');
   let result = await h.rpc.request('textDocument/completion', { textDocument: { uri }, position: { line: 3, character: 0 } });
   const labels = new Set(result.items.map(item => item.label));
-  for (const label of ['all', 'exists', 'verify', '=>', '->', ':', 'human', 'dog', 'teacher', 'respect', '苏格拉底', '史努比'])
+  for (const label of ['all', 'exists', 'verify', '=>', '->', '&', ':', 'human', 'dog', 'teacher', 'respect', '苏格拉底', '史努比'])
     assert.ok(labels.has(label), `Missing ${label}`);
   assert.ok(!labels.has('P1'));
   assert.ok(!labels.has('-'));
-  h.change(uri, '新对象:newtype\n');
+  h.change(uri, 'type nat = 0 | succ(nat)\n');
+  result = await h.rpc.request('textDocument/completion', { textDocument: { uri }, position: { line: 1, character: 0 } });
+  for (const retired of ['type', 'nat', 'succ', '|'])
+    assert.ok(!result.items.some(item => item.label === retired), `Retired syntax suggested ${retired}`);
+  h.change(uri, 'type : nat\ntype (x)\n', 3);
+  result = await h.rpc.request('textDocument/completion', { textDocument: { uri }, position: { line: 2, character: 0 } });
+  for (const ordinary of ['type', 'nat', 'x'])
+    assert.ok(result.items.some(item => item.label === ordinary), `Ordinary name missing ${ordinary}`);
+  h.change(uri, '新对象:newtype\n', 4);
   result = await h.rpc.request('textDocument/completion', { textDocument: { uri }, position: { line: 1, character: 0 } });
   assert.ok(result.items.some(item => item.label === 'newtype'));
   assert.ok(!result.items.some(item => item.label === 'dog'));

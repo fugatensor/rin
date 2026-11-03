@@ -1,0 +1,8 @@
+type: category
+type(item)
+
+verify NAME = type: category
+verify RELATION = type(item)
+
+# expect-output: verify NAME PASS
+# expect-output: verify RELATION PASS

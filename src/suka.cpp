@@ -68,22 +68,13 @@ struct Rule {
 };
 struct Query {
     Atom atom;
-    std::string name, exists_type;
-    Variables variables;
-};
-struct Constructor {
     std::string name;
-    std::vector<std::string> parameters;
+    Variables variables;
 };
 struct Program {
     std::set<Atom> facts;
     std::vector<Rule> rules;
     std::vector<Query> queries;
-    std::map<std::string, std::vector<Constructor>> types;
-    std::map<std::string, Location> type_lines;
-    std::map<std::string, Term> inhabitants;
-    std::set<Term> terms;
-    std::set<std::string> partial_predicates;
 };
 struct Line {
     Location location;
@@ -260,100 +251,13 @@ bool is_variable(const Term& term, const Variables& variables) {
     return term.arguments.empty() && variables.count(term.name);
 }
 
-bool collect_terms(const Term& term, const Variables& variables, std::set<Term>& terms) {
-    bool ground = !is_variable(term, variables);
-    for (const auto& argument : term.arguments)
-        if (!collect_terms(argument, variables, terms)) ground = false;
-    if (ground) terms.insert(term);
-    return ground;
-}
-
-bool has_type(const Term& term, const std::string& type, const Program& program) {
-    const auto definition = program.types.find(type);
-    if (definition == program.types.end()) return false;
-    for (const auto& constructor : definition->second) {
-        if (constructor.name != term.name || constructor.parameters.size() != term.arguments.size()) continue;
-        bool valid = true;
-        for (std::size_t i = 0; i < term.arguments.size(); ++i)
-            if (!has_type(term.arguments[i], constructor.parameters[i], program)) valid = false;
-        if (valid) return true;
-    }
-    return false;
-}
-
-void prepare_types(Program& program) {
-    std::set<std::string> constructors;
-    std::map<std::string, std::pair<std::size_t, std::size_t>> sizes;
-    for (const auto& entry : program.types) {
-        for (const auto& constructor : entry.second) {
-            if (!constructors.insert(constructor.name).second)
-                fail(program.type_lines.at(entry.first), "duplicate constructor '" + constructor.name + "'");
-            for (const auto& parameter : constructor.parameters)
-                if (!program.types.count(parameter))
-                    fail(program.type_lines.at(entry.first), "undefined constructor parameter type '" + parameter + "'");
-        }
-    }
-    // Find a finite example of each inhabited type without enumerating its domain.
-    bool changed;
-    do {
-        changed = false;
-        for (const auto& entry : program.types) {
-            if (program.inhabitants.count(entry.first)) continue;
-            for (const auto& constructor : entry.second) {
-                Term value{constructor.name, {}};
-                bool ready = true;
-                std::size_t nodes = 1, height = 1;
-                for (const auto& parameter : constructor.parameters) {
-                    const auto example = program.inhabitants.find(parameter);
-                    if (example == program.inhabitants.end()) { ready = false; break; }
-                    const auto size = sizes.at(parameter);
-                    if (nodes > max_term_nodes - size.first || size.second >= max_depth)
-                        fail(program.type_lines.at(entry.first), "constructor example limit exceeded");
-                    nodes += size.first;
-                    height = std::max(height, size.second + 1);
-                    value.arguments.push_back(example->second);
-                }
-                if (ready) {
-                    program.inhabitants.emplace(entry.first, value);
-                    sizes[entry.first] = {nodes, height};
-                    collect_terms(value, {}, program.terms);
-                    changed = true;
-                    break;
-                }
-            }
-        }
-    } while (changed);
-    // Every nullary alternative is a useful finite candidate, including e.g. true/false.
-    for (const auto& entry : program.types)
-        for (const auto& constructor : entry.second)
-            if (constructor.parameters.empty()) program.terms.insert({constructor.name, {}});
-}
-
 Program parse(const std::vector<Line>& lines) {
     Program program;
-    std::vector<std::pair<Atom, Location>> input_facts;
     for (std::size_t i = 0; i < lines.size();) {
         const auto& line = lines[i];
         Cursor cursor(line);
         if (line.indent) fail(line.location, "unexpected indentation");
-        if (cursor.keyword("type") && cursor.take("type")) {
-            const auto type = cursor.name();
-            if (type == "different") fail(line.location, "different is a reserved term comparison");
-            if (program.types.count(type)) fail(line.location, "duplicate type '" + type + "'");
-            cursor.expect("=");
-            std::vector<Constructor> constructors;
-            do {
-                Constructor constructor{cursor.name(), {}};
-                if (cursor.take("(") && !cursor.take(")")) {
-                    do { constructor.parameters.push_back(cursor.name()); } while (cursor.take(","));
-                    cursor.expect(")");
-                }
-                constructors.push_back(std::move(constructor));
-            } while (cursor.take("|"));
-            cursor.finish();
-            program.types.emplace(type, std::move(constructors));
-            program.type_lines[type] = line.location;
-        } else if (cursor.keyword("all") && cursor.take("all")) {
+        if (cursor.keyword("all") && cursor.take("all")) {
             Variables variables;
             std::vector<Atom> guards;
             do {
@@ -421,18 +325,13 @@ Program parse(const std::vector<Line>& lines) {
             const auto label = cursor.name();
             cursor.expect("=");
             Cursor query_cursor(line, cursor.pos);
-            Query query{{}, label, {}, {}};
-            if (query_cursor.peek() == "exists" && query_cursor.peek(2) == "->") {
-                query_cursor.expect("exists");
-                query.exists_type = query_cursor.name();
-                query_cursor.expect("->");
-                query.atom.predicate = query_cursor.name();
-            } else if (query_cursor.keyword("exists")) {
+            Query query{{}, label, {}};
+            if (query_cursor.keyword("exists")) {
                 query.atom = query_cursor.exists(query.variables);
             } else query.atom = query_cursor.atom();
             query_cursor.finish();
             if (query.atom.predicate == "different" &&
-                (query.atom.arguments.size() != 2 || !query.variables.empty() || !query.exists_type.empty()))
+                (query.atom.arguments.size() != 2 || !query.variables.empty()))
                 fail(line.location, "different verification requires exactly two ground terms");
             program.queries.push_back(std::move(query));
         } else {
@@ -440,43 +339,10 @@ Program parse(const std::vector<Line>& lines) {
             cursor.finish();
             if (fact.predicate == "different")
                 fail(line.location, "different cannot be asserted as a fact");
-            input_facts.push_back({fact, line.location});
             program.facts.insert(std::move(fact));
         }
         ++i;
     }
-    prepare_types(program);
-    for (const auto& fact : input_facts) {
-        if (program.types.count(fact.first.predicate) &&
-            (fact.first.arguments.size() != 1 || !has_type(fact.first.arguments[0], fact.first.predicate, program)))
-            fail(fact.second, "fact does not match the declared constructor type '" + fact.first.predicate + "'");
-        for (const auto& term : fact.first.arguments) collect_terms(term, {}, program.terms);
-    }
-    for (const auto& rule : program.rules) {
-        if (program.types.count(rule.conclusion.predicate))
-            fail(rule.line, "a declared constructor type cannot be a rule conclusion");
-        Variables variables = rule.variables;
-        variables.insert(rule.existentials.begin(), rule.existentials.end());
-        for (const auto& premise : rule.premises) {
-            for (const auto& term : premise.arguments) collect_terms(term, rule.variables, program.terms);
-            if (program.types.count(premise.predicate) &&
-                !std::all_of(program.types.at(premise.predicate).begin(),
-                             program.types.at(premise.predicate).end(),
-                             [](const Constructor& item) { return item.parameters.empty(); }))
-                program.partial_predicates.insert(rule.conclusion.predicate);
-        }
-        for (const auto& term : rule.conclusion.arguments) collect_terms(term, variables, program.terms);
-    }
-    for (const auto& query : program.queries)
-        for (const auto& term : query.atom.arguments) collect_terms(term, query.variables, program.terms);
-    bool changed;
-    do {
-        changed = false;
-        for (const auto& rule : program.rules)
-            for (const auto& premise : rule.premises)
-                if (program.partial_predicates.count(premise.predicate) &&
-                    program.partial_predicates.insert(rule.conclusion.predicate).second) changed = true;
-    } while (changed);
     return program;
 }
 
@@ -535,26 +401,12 @@ bool is_proven(const Query& query, const Program& program);
 
 bool prove(Program& program) {
     std::vector<std::set<Binding>> fired(program.rules.size());
-    std::set<Term> checked_terms;
     std::size_t next_witness = 0;
     for (std::size_t round = 0; round < max_rounds; ++round) {
         // All requested proofs are already established; no need to enumerate successors.
         if (std::all_of(program.queries.begin(), program.queries.end(),
                         [&](const Query& query) { return is_proven(query, program); })) return false;
         bool changed = false;
-        // Materialize only the finite terms actually encountered, never all successors.
-        for (const auto& term : program.terms) {
-            if (!checked_terms.insert(term).second) continue;
-            for (const auto& type : program.types) {
-                if (!has_type(term, type.first, program)) continue;
-                Atom fact{type.first, {term}};
-                if (!program.facts.count(fact)) {
-                    if (program.facts.size() >= max_facts) return false;
-                    program.facts.insert(std::move(fact));
-                    changed = true;
-                }
-            }
-        }
         for (std::size_t index = 0; index < program.rules.size(); ++index) {
             const auto& rule = program.rules[index];
             std::vector<Binding> bindings(1);
@@ -604,7 +456,6 @@ bool prove(Program& program) {
                 } catch (const ProofLimit&) { return false; }
                 if (!program.facts.count(conclusion)) {
                     if (program.facts.size() >= max_facts) return false;
-                    for (const auto& term : conclusion.arguments) collect_terms(term, {}, program.terms);
                     program.facts.insert(std::move(conclusion));
                     changed = true;
                 }
@@ -615,42 +466,9 @@ bool prove(Program& program) {
     return false;
 }
 
-// Solve a constructor-type query structurally, including existential patterns.
-bool type_pattern(const Term& pattern, const std::string& type, const Variables& variables,
-                  Binding& binding, const Program& program) {
-    if (is_variable(pattern, variables)) {
-        const auto value = binding.find(pattern.name);
-        if (value != binding.end()) return has_type(value->second, type, program);
-        const auto example = program.inhabitants.find(type);
-        if (example == program.inhabitants.end()) return false;
-        binding.emplace(pattern.name, example->second);
-        return true;
-    }
-    for (const auto& constructor : program.types.at(type)) {
-        if (constructor.name != pattern.name || constructor.parameters.size() != pattern.arguments.size()) continue;
-        for (std::size_t i = 0; i < pattern.arguments.size(); ++i)
-            if (!type_pattern(pattern.arguments[i], constructor.parameters[i], variables, binding, program)) return false;
-        return true;
-    }
-    return false;
-}
-
 bool is_proven(const Query& query, const Program& program) {
     if (query.atom.predicate == "different")
         return !(query.atom.arguments[0] == query.atom.arguments[1]);
-    if (!query.exists_type.empty()) {
-        for (const auto& fact : program.facts) {
-            if (fact.predicate == query.exists_type && fact.arguments.size() == 1 &&
-                (program.facts.count({query.atom.predicate, fact.arguments}) ||
-                 has_type(fact.arguments[0], query.atom.predicate, program))) return true;
-        }
-        return false;
-    }
-    if (program.types.count(query.atom.predicate)) {
-        if (query.atom.arguments.size() != 1) return false;
-        Binding binding;
-        return type_pattern(query.atom.arguments[0], query.atom.predicate, query.variables, binding, program);
-    }
     if (query.variables.empty()) return program.facts.count(query.atom) != 0;
     for (const auto& fact : program.facts) {
         Binding binding;
@@ -667,18 +485,13 @@ suka_result evaluate(const std::vector<Line>& lines, bool check) {
     std::ostringstream output;
     for (const auto& query : program.queries) {
         const bool found = is_proven(query, program);
-        const bool structural = query.atom.predicate == "different" ||
-            (query.exists_type.empty() && program.types.count(query.atom.predicate));
-        const bool incomplete = !structural && (!saturated ||
-            program.partial_predicates.count(query.atom.predicate) ||
-            program.partial_predicates.count(query.exists_type));
+        const bool incomplete = query.atom.predicate != "different" && !saturated;
         output << "verify " << query.name << (found ? " PASS\n" : incomplete ? " UNKNOWN\n" : " FAIL\n");
         unknown = unknown || (!found && incomplete);
         failed = failed || (!found && !incomplete);
     }
     std::string error;
-    if (unknown) error = saturated ? "suka: constructor-domain search is limited; unproved queries are UNKNOWN\n"
-                                   : "suka: inference limit reached; unproved queries are UNKNOWN\n";
+    if (unknown) error = "suka: inference limit reached; unproved queries are UNKNOWN\n";
     return {unknown ? 3 : failed ? 1 : 0, output.str(), error};
 }
 

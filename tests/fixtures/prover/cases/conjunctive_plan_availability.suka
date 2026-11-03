@@ -1,5 +1,8 @@
-type buffer = b0 | b1
-type step = s0 | s1 | s2
+b0: buffer
+b1: buffer
+s0: step
+s1: step
+s2: step
 
 next(s0, s1)
 next(s1, s2)

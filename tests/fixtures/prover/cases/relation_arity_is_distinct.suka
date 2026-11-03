@@ -1,0 +1,21 @@
+
+dog(Alice, Bob)
+mortal(Alice)
+human(Carol)
+wise(Carol, Dave)
+pair(Eve, Frank)
+friends(Eve, Frank)
+verify BINARY_DOG = exists x, y => dog(x, y)
+verify UNARY_DOG = exists x => dog(x)
+verify BINARY_WISE = exists x, y => wise(x, y)
+verify UNARY_WISE = exists x => wise(x)
+verify BINARY_FRIENDS = exists x, y => friends(x, y)
+verify UNARY_FRIENDS = exists x => friends(x)
+
+# expect-status: 1
+# expect-output: verify BINARY_DOG PASS
+# expect-output: verify UNARY_DOG FAIL
+# expect-output: verify BINARY_WISE PASS
+# expect-output: verify UNARY_WISE FAIL
+# expect-output: verify BINARY_FRIENDS PASS
+# expect-output: verify UNARY_FRIENDS FAIL
