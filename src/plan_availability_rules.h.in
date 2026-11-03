@@ -1,0 +1,5 @@
+#pragma once
+
+constexpr char kPlanAvailabilityRule[] = R"SUKA_PASS_RULES(
+@SUKA_PLAN_AVAILABILITY_RULES@
+)SUKA_PASS_RULES";

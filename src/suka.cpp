@@ -97,7 +97,7 @@ struct Line {
 
 bool is_identifier(const std::string& token) {
     return !token.empty() && token != "->" && token != "=>" &&
-           token.find_first_of(":,=()|\"") == std::string::npos;
+           token.find_first_of(":,=()|&\"") == std::string::npos;
 }
 
 std::vector<Line> read_lines(std::istream& input, const std::string& path) {
@@ -122,14 +122,14 @@ std::vector<Line> read_lines(std::istream& input, const std::string& path) {
             } else if (text.compare(pos, 2, "->") == 0 || text.compare(pos, 2, "=>") == 0) {
                 line.tokens.push_back(text.substr(pos, 2));
                 pos += 2;
-            } else if (std::string(":,=()|").find(text[pos]) != std::string::npos) {
+            } else if (std::string(":,=()|&").find(text[pos]) != std::string::npos) {
                 line.tokens.push_back(text.substr(pos++, 1));
             } else {
                 const auto start = pos;
                 while (pos < text.size() &&
                        !std::isspace(static_cast<unsigned char>(text[pos])) &&
                        text[pos] != '#' &&
-                       std::string(":,=()|\"").find(text[pos]) == std::string::npos &&
+                       std::string(":,=()|&\"").find(text[pos]) == std::string::npos &&
                        text.compare(pos, 2, "->") != 0 && text.compare(pos, 2, "=>") != 0) ++pos;
                 line.tokens.push_back(text.substr(start, pos - start));
             }
@@ -338,6 +338,7 @@ Program parse(const std::vector<Line>& lines) {
         if (line.indent) fail(line.location, "unexpected indentation");
         if (cursor.keyword("type") && cursor.take("type")) {
             const auto type = cursor.name();
+            if (type == "different") fail(line.location, "different is a reserved term comparison");
             if (program.types.count(type)) fail(line.location, "duplicate type '" + type + "'");
             cursor.expect("=");
             std::vector<Constructor> constructors;
@@ -364,6 +365,7 @@ Program parse(const std::vector<Line>& lines) {
                 } while (cursor.take(","));
                 cursor.expect(":");
                 const auto type = cursor.name();
+                if (type == "different") fail(line.location, "different is a reserved term comparison");
                 for (const auto& variable : group) guards.push_back({type, {{variable, {}}}});
             } while (cursor.take(","));
             cursor.expect("=>");
@@ -371,8 +373,14 @@ Program parse(const std::vector<Line>& lines) {
                 Rule rule{{}, {}, variables, {}, rule_cursor.line.location};
                 if (!rule_cursor.keyword("exists")) {
                     auto first = rule_cursor.atom();
-                    if (rule_cursor.take("->")) rule.premises.push_back(std::move(first));
-                    else rule.conclusion = std::move(first);
+                    if (rule_cursor.take("&")) {
+                        rule.premises.push_back(std::move(first));
+                        do { rule.premises.push_back(rule_cursor.atom()); }
+                        while (rule_cursor.take("&"));
+                        rule_cursor.expect("->");
+                    } else if (rule_cursor.take("->")) {
+                        rule.premises.push_back(std::move(first));
+                    } else rule.conclusion = std::move(first);
                 }
                 if (rule.conclusion.predicate.empty()) {
                     if (rule_cursor.keyword("exists"))
@@ -380,9 +388,18 @@ Program parse(const std::vector<Line>& lines) {
                     else rule.conclusion = rule_cursor.atom();
                 }
                 rule_cursor.finish();
+                if (rule.conclusion.predicate == "different")
+                    fail(rule.line, "different is only allowed as a rule premise");
+                for (const auto& premise : rule.premises)
+                    if (premise.predicate == "different" && premise.arguments.size() != 2)
+                        fail(rule.line, "different requires exactly two terms");
                 for (const auto& variable : rule.existentials)
                     if (variables.count(variable)) fail(rule.line, "existential variable shadows '" + variable + "'");
                 rule.premises.insert(rule.premises.end(), guards.begin(), guards.end());
+                // A structural comparison needs every universal variable bound.
+                // Relational premises and type guards establish those bindings.
+                std::stable_partition(rule.premises.begin(), rule.premises.end(),
+                    [](const Atom& premise) { return premise.predicate != "different"; });
                 program.rules.push_back(std::move(rule));
             };
             if (!cursor.done()) {
@@ -414,10 +431,15 @@ Program parse(const std::vector<Line>& lines) {
                 query.atom = query_cursor.exists(query.variables);
             } else query.atom = query_cursor.atom();
             query_cursor.finish();
+            if (query.atom.predicate == "different" &&
+                (query.atom.arguments.size() != 2 || !query.variables.empty() || !query.exists_type.empty()))
+                fail(line.location, "different verification requires exactly two ground terms");
             program.queries.push_back(std::move(query));
         } else {
             auto fact = cursor.atom();
             cursor.finish();
+            if (fact.predicate == "different")
+                fail(line.location, "different cannot be asserted as a fact");
             input_facts.push_back({fact, line.location});
             program.facts.insert(std::move(fact));
         }
@@ -437,7 +459,10 @@ Program parse(const std::vector<Line>& lines) {
         variables.insert(rule.existentials.begin(), rule.existentials.end());
         for (const auto& premise : rule.premises) {
             for (const auto& term : premise.arguments) collect_terms(term, rule.variables, program.terms);
-            if (program.types.count(premise.predicate))
+            if (program.types.count(premise.predicate) &&
+                !std::all_of(program.types.at(premise.predicate).begin(),
+                             program.types.at(premise.predicate).end(),
+                             [](const Constructor& item) { return item.parameters.empty(); }))
                 program.partial_predicates.insert(rule.conclusion.predicate);
         }
         for (const auto& term : rule.conclusion.arguments) collect_terms(term, variables, program.terms);
@@ -535,6 +560,20 @@ bool prove(Program& program) {
             std::vector<Binding> bindings(1);
             for (const auto& premise : rule.premises) {
                 std::vector<Binding> next;
+                if (premise.predicate == "different") {
+                    for (auto& binding : bindings) {
+                        if (binding.size() != rule.variables.size()) return false;
+                        std::size_t left_budget = max_term_nodes, right_budget = max_term_nodes;
+                        try {
+                            if (!(substitute(premise.arguments[0], binding, left_budget) ==
+                                  substitute(premise.arguments[1], binding, right_budget)))
+                                next.push_back(std::move(binding));
+                        } catch (const ProofLimit&) { return false; }
+                    }
+                    bindings = std::move(next);
+                    if (bindings.empty()) break;
+                    continue;
+                }
                 for (const auto& binding : bindings) {
                     for (const auto& fact : program.facts) {
                         auto candidate = binding;
@@ -597,6 +636,8 @@ bool type_pattern(const Term& pattern, const std::string& type, const Variables&
 }
 
 bool is_proven(const Query& query, const Program& program) {
+    if (query.atom.predicate == "different")
+        return !(query.atom.arguments[0] == query.atom.arguments[1]);
     if (!query.exists_type.empty()) {
         for (const auto& fact : program.facts) {
             if (fact.predicate == query.exists_type && fact.arguments.size() == 1 &&
@@ -626,7 +667,8 @@ suka_result evaluate(const std::vector<Line>& lines, bool check) {
     std::ostringstream output;
     for (const auto& query : program.queries) {
         const bool found = is_proven(query, program);
-        const bool structural = query.exists_type.empty() && program.types.count(query.atom.predicate);
+        const bool structural = query.atom.predicate == "different" ||
+            (query.exists_type.empty() && program.types.count(query.atom.predicate));
         const bool incomplete = !structural && (!saturated ||
             program.partial_predicates.count(query.atom.predicate) ||
             program.partial_predicates.count(query.exists_type));
@@ -674,5 +716,5 @@ int suka_result_status(const suka_result* result) { return result ? result->stat
 const char* suka_result_output(const suka_result* result) { return result ? result->output.c_str() : ""; }
 const char* suka_result_error(const suka_result* result) { return result ? result->error.c_str() : "suka: null result"; }
 void suka_result_free(suka_result* result) { delete result; }
-const char* suka_version(void) { return "suka 0.2.0"; }
+const char* suka_version(void) { return "suka 0.3.0"; }
 }

@@ -1,0 +1,25 @@
+type node = first | second
+edge(first, second)
+edge(first, first)
+
+all x: node, y: node =>
+    edge(x, y) & different(x, y) -> distinct_edge(x, y)
+    different(x, y) -> distinct_pair(x, y)
+    different(x, x) -> impossible(x)
+
+verify DIFFERENT = distinct_edge(first, second)
+verify SAME = distinct_edge(first, first)
+verify BOUND_PAIR = distinct_pair(first, second)
+verify BOUND_SAME = distinct_pair(first, first)
+verify IMPOSSIBLE = impossible(first)
+verify GROUND = different(pair(first, second), pair(first, first))
+verify EQUAL = different(pair(first, second), pair(first, second))
+
+# expect-status: 1
+# expect-output: verify DIFFERENT PASS
+# expect-output: verify SAME FAIL
+# expect-output: verify BOUND_PAIR PASS
+# expect-output: verify BOUND_SAME FAIL
+# expect-output: verify IMPOSSIBLE FAIL
+# expect-output: verify GROUND PASS
+# expect-output: verify EQUAL FAIL

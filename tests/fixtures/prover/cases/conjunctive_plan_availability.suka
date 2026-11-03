@@ -1,0 +1,26 @@
+type buffer = b0 | b1
+type step = s0 | s1 | s2
+
+next(s0, s1)
+next(s1, s2)
+available(b0, s0)
+marked(b0)
+ready(b1)
+
+all b: buffer, s: step, t: step =>
+    available(b, s) & next(s, t) -> available(b, t)
+
+all b: buffer =>
+    marked(b) & ready(b) -> eligible(b)
+    available(b, s2) & marked(b) -> exists w => witness(w, b)
+
+verify CHAIN = available(b0, s2)
+verify UNWRITTEN = available(b1, s2)
+verify SAME_BINDING = eligible(b0)
+verify EXISTS = exists w => witness(w, b0)
+
+# expect-status: 1
+# expect-output: verify CHAIN PASS
+# expect-output: verify UNWRITTEN FAIL
+# expect-output: verify SAME_BINDING FAIL
+# expect-output: verify EXISTS PASS

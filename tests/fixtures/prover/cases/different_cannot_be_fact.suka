@@ -1,0 +1,4 @@
+different(a, b)
+
+# expect-status: 2
+# expect-error: different cannot be asserted

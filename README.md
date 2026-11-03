@@ -1,6 +1,6 @@
 # Suka
 
-一个 C++17 实现的极简证明器，支持类型事实、关系、全称规则、匿名存在对象和结构化构造项。语法详见 [SYNTAX.md](SYNTAX.md)。
+一个 C++17 实现的证明器，支持类型事实、关系、合取前提、结构不等式、全称规则、匿名存在对象和结构化构造项。语法详见 [SYNTAX.md](SYNTAX.md)。
 
 ## 构建和运行
 
@@ -16,8 +16,9 @@ make
 - `build/suka`：CLI。
 - `build/libsuka.so`：动态链接库。
 - `include/suka.h`：外部程序使用的 C ABI 头文件。
+- `include/suka/pass.h`：静态 PASS 库的 C++ 接口（使用 CMake 构建）。
 
-引擎只编译一次，CLI 链接同一个动态库。二进制通过相对运行时路径寻找库，不依赖仓库的绝对位置，也不在程序中写死输入文件路径。无参数运行会显示用法；传入任意 `.suka` 文件即可：
+Make 构建的 CLI 链接动态库。二进制通过相对运行时路径寻找库，不依赖仓库的绝对位置，也不在程序中写死输入文件路径。CMake 构建的 PASS 静态库自带证明器。无参数运行会显示用法；传入任意 `.suka` 文件即可：
 
 ```sh
 ./build/suka path/to/file.suka
@@ -120,6 +121,10 @@ python3 examples/ffi.py .suka/main.suka
 ```
 
 状态码：`0` 全部通过，`1` 存在 `FAIL`，`2` 输入错误，`3` 存在 `UNKNOWN`。
+
+## PASS 库
+
+`Suka::Pass` 将执行计划和缓冲区复用候选交给 `.suka` 规则证明。`checkPlan` 验证每步读取与公开输出的可用性，`checkReuse` 验证给定复用候选；只有 `Pass` 允许调用方采用。接口、规则、证明边界及 CMake 接入见 [PASS.md](PASS.md)。
 
 ## VS Code 与 LSP
 

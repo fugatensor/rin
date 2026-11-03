@@ -1,0 +1,5 @@
+a: item
+all x: item => different(x) -> ready(x)
+
+# expect-status: 2
+# expect-error: different requires exactly two terms

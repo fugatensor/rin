@@ -1,0 +1,5 @@
+a: item
+verify OPEN = exists x => different(x, a)
+
+# expect-status: 2
+# expect-error: different verification requires exactly two ground terms

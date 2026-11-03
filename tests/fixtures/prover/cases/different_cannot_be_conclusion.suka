@@ -1,0 +1,5 @@
+a: item
+all x: item => different(x, a)
+
+# expect-status: 2
+# expect-error: different is only allowed

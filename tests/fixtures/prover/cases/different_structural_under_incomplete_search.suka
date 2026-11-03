@@ -1,0 +1,10 @@
+zero: nat
+all n: nat => succ(n): nat
+
+verify EQUAL = different(zero, zero)
+verify UNPROVED = missing(zero)
+
+# expect-status: 3
+# expect-output: verify EQUAL FAIL
+# expect-output: verify UNPROVED UNKNOWN
+# expect-error: (?i)limit

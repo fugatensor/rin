@@ -1,0 +1,6 @@
+x: item
+p(x)
+all a: item => p(a) -> q(a) & r(a)
+
+# expect-status: 2
+# expect-error: unexpected '&'
