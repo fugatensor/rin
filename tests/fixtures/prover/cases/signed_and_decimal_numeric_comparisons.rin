@@ -1,0 +1,46 @@
+-9223372036854775808: num
+-10: num
+-0.5: num
+-0.05: num
+0: num
+0.1: num
+1: num
+3.14: num
+1.25e2: num
+9223372036854775807: num
+9223372036854775807.5: num
+18446744073709551615: num
+sym: non_num
+
+all a, b: num =>
+    less(a, b) -> strictly_less(a, b)
+    less_equal(a, b) -> leq(a, b)
+    greater(a, b) -> strictly_greater(a, b)
+    greater_equal(a, b) -> geq(a, b)
+
+verify NEG_ORDER = strictly_less(-9223372036854775808, -10)
+verify NEG_DEC = strictly_less(-0.5, -0.05)
+verify CROSS_SIGN = strictly_less(-0.05, 0)
+verify ZERO_EQ = leq(0, -0.0)
+verify ONE_EQ = geq(1, 1.0)
+verify SCI = strictly_greater(1.25e2, 3.14)
+verify INT64_FRAC = strictly_less(9223372036854775807, 9223372036854775807.5)
+verify UINT64_MAX = geq(18446744073709551615, 9223372036854775807.5)
+verify DIFF_ZERO = different(0, -0.0)
+verify DIFF_DEC = different(0.1, 0.10)
+verify DIFF_ONE = different(1, 1.0)
+verify NON_NUM_FAIL = greater(sym, 1)
+
+# expect-status: 1
+# expect-output: verify NEG_ORDER PASS
+# expect-output: verify NEG_DEC PASS
+# expect-output: verify CROSS_SIGN PASS
+# expect-output: verify ZERO_EQ PASS
+# expect-output: verify ONE_EQ PASS
+# expect-output: verify SCI PASS
+# expect-output: verify INT64_FRAC PASS
+# expect-output: verify UINT64_MAX PASS
+# expect-output: verify DIFF_ZERO FAIL
+# expect-output: verify DIFF_DEC FAIL
+# expect-output: verify DIFF_ONE FAIL
+# expect-output: verify NON_NUM_FAIL FAIL

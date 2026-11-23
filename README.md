@@ -22,11 +22,12 @@ CLI 直接编译头文件证明核心。传入 `.rin` 文件即可执行：
 
 ```sh
 ./build/rin path/to/file.rin
+./build/rin --witness path/to/file.rin
 ./build/rin --check path/to/file.rin
 ./build/rin --help
 ```
 
-`--check` 检查语法和导入，不执行推理。编辑器可使用标准输入检查未保存的内容：
+`--witness` 在输出 `PASS` 时附带存在量词的见证绑定和简明推导溯源；`--check` 只检查语法和导入，不执行推理。编辑器可使用标准输入检查未保存的内容：
 
 ```sh
 ./build/rin --check --stdin --base-dir .rin < .rin/main.rin
@@ -124,7 +125,7 @@ python3 examples/ffi.py .rin/main.rin
 
 ## PASS 库
 
-`Rin::Pass` 是可直接内联的 C++17 头文件库。`Program` 一次解析规则并编译匹配布局，通过 `check` 接收结构化事实和目标；`run` 用于执行完整 `.rin` 文本。数值项支持 `uint64_t`，`less` / `less_equal` 比较原始值。渐进接入说明见 [PASS.md](PASS.md)，执行速度与内存测量见 [性能报告](PERFORMANCE.md)。
+`Rin::Pass` 是可直接内联的 C++17 头文件库。`Program` 一次解析规则并编译匹配布局，通过 `check` 获取布尔判定，或通过 `solve` 运行饱和推导后按谓词/模式提取基项实例、存在见证绑定与推导溯源；`run` / `solve` 自由函数用于执行完整 `.rin` 文本。数值项支持有符号 `int64_t`、无符号 `uint64_t`、精确十进制数与 `double`，可通过 `less` / `less_equal` / `greater` / `greater_equal` 比较。接口说明见 [PASS.md](PASS.md)，历史性能基准见 [性能报告](PERFORMANCE.md)。
 
 ## VS Code 与 LSP
 

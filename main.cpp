@@ -4,23 +4,24 @@
 #include <string>
 
 int main(int argc, char* argv[]) {
-    bool check = false, standard_input = false, positional = false;
+    bool check = false, witness = false, standard_input = false, positional = false;
     std::string path, base_directory;
     auto usage = [&]() {
-        std::cerr << "usage: rin [--check] FILE\n"
-                  << "       rin [--check] --stdin [--base-dir DIRECTORY]\n";
+        std::cerr << "usage: rin [--check | --witness] FILE\n"
+                  << "       rin [--check | --witness] --stdin [--base-dir DIRECTORY]\n";
         return 2;
     };
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
         if (!positional && argument == "--") { positional = true; continue; }
         if (!positional && argument == "--help") {
-            std::cout << "usage: rin [--check] FILE\n"
-                      << "       rin [--check] --stdin [--base-dir DIRECTORY]\n";
+            std::cout << "usage: rin [--check | --witness] FILE\n"
+                      << "       rin [--check | --witness] --stdin [--base-dir DIRECTORY]\n";
             return 0;
         }
         if (!positional && argument == "--version") { std::cout << rin::version << '\n'; return 0; }
         if (!positional && argument == "--check") check = true;
+        else if (!positional && argument == "--witness") witness = true;
         else if (!positional && argument == "--stdin") standard_input = true;
         else if (!positional && argument == "--base-dir") {
             if (++i == argc) return usage();
@@ -28,7 +29,7 @@ int main(int argc, char* argv[]) {
         } else if ((!positional && !argument.empty() && argument[0] == '-') || !path.empty()) return usage();
         else path = argument;
     }
-    if ((standard_input && !path.empty()) || (!standard_input && path.empty()) ||
+    if ((check && witness) || (standard_input && !path.empty()) || (!standard_input && path.empty()) ||
         (!standard_input && !base_directory.empty())) return usage();
     rin::pass::detail::Result result{0, {}, {}};
     try {
@@ -41,7 +42,25 @@ int main(int argc, char* argv[]) {
             Imports imports;
             program = parse(load_file(std::filesystem::u8path(path), imports));
         }
-        if (!check) result = evaluate(program, program.rules);
+        if (!check) {
+            if (witness) {
+                const auto sol = evaluate_solution(program, program.rules, rin::pass::SolveOptions{});
+                std::ostringstream output;
+                for (const auto& query : sol.queries) output << query.format();
+                const int status = sol.verdict == rin::pass::Verdict::Pass ? 0 :
+                    sol.verdict == rin::pass::Verdict::Fail ? 1 :
+                    sol.verdict == rin::pass::Verdict::Unknown ? 3 : 2;
+                std::string error;
+                if (status == 3) {
+                    error = sol.queries.empty()
+                        ? "rin: inference limit reached; saturation is incomplete\n"
+                        : "rin: inference limit reached; unproved queries are UNKNOWN\n";
+                }
+                result = {status, output.str(), std::move(error)};
+            } else {
+                result = evaluate(program, program.rules);
+            }
+        }
     } catch (const std::exception& error) {
         result = {2, {}, std::string(error.what()) + "\n"};
     }

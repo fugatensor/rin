@@ -122,6 +122,15 @@ test('semantic UTF-16 spans remain correct for non-BMP object names and mixed bi
   assert.equal(classify('import facts')[1].type, 'namespace');
 });
 
+test('semantic tokens highlight signed integers, decimals, and scientific numbers', () => {
+  const tokens = classify('less(-42, 3.14)\ngreater_equal(-0.5, 1.25e-3)\n');
+  for (const literal of ['-42', '3.14', '-0.5', '1.25e-3']) {
+    const tok = tokens.find(t => t.text === literal);
+    assert.ok(tok, `Missing token ${literal}`);
+    assert.equal(tok.type, 'number');
+  }
+});
+
 function readTheme(filename) {
   const theme = JSON.parse(fs.readFileSync(filename, 'utf8'));
   const inherited = theme.include ? readTheme(path.resolve(path.dirname(filename), theme.include)) : { tokenColors: [], colors: {} };

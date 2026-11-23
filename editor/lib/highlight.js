@@ -91,7 +91,7 @@ function classify(text) {
         else if (code[i - 1]?.text === ':') classified = { type: 'type', modifiers: [] };
         else if (code[i + 1]?.text === '(') classified = { type: 'function', modifiers: [] };
         else if (variables.has(token.text)) classified = { type: 'parameter', modifiers: [] };
-        else if (/^\d+$/u.test(token.text)) classified = { type: 'number', modifiers: [] };
+        else if (/^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/u.test(token.text)) classified = { type: 'number', modifiers: [] };
         else classified = { type: 'variable', modifiers: ['readonly'] };
       }
       result.push({ ...token, line: lineNumber, ...classified });

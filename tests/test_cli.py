@@ -113,6 +113,19 @@ class CliTests(unittest.TestCase):
         assert_result(self, result, entry)
         self.assertIn(str(self.base / "broken.rin"), result.stderr)
 
+    def test_witness_flag_outputs_existential_witness_and_trace(self):
+        result = self.invoke("--witness", ROOT / ".rin" / "main.rin", cwd=ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("verify P3 PASS", result.stdout)
+        self.assertIn("witness: m = :w", result.stdout)
+        self.assertIn("trace:", result.stdout)
+        self.assertIn("given: human(苏格拉底)", result.stdout)
+
+    def test_check_and_witness_together_is_rejected(self):
+        result = self.invoke("--check", "--witness", ROOT / ".rin" / "main.rin", cwd=ROOT)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("usage", result.stderr.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

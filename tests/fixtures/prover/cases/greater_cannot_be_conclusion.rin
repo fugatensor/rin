@@ -1,0 +1,4 @@
+a: num
+all x: num => greater(x, 0)
+# expect-status: 2
+# expect-error: greater is only allowed

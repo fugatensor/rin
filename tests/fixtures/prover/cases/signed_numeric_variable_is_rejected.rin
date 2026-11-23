@@ -1,0 +1,3 @@
+all -1: num => p(-1)
+# expect-status: 2
+# expect-error: symbolic name
