@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -278,6 +279,13 @@ public:
         }
         const std::string text = to_string();
         double out = 0.0;
+#if defined(_LIBCPP_VERSION)
+        char* end = nullptr;
+        out = std::strtod(text.c_str(), &end);
+        if (std::isinf(out)) {
+            return negative_ ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+        }
+#else
         const auto [ptr, ec] = std::from_chars(text.data(), text.data() + text.size(), out);
         (void)ptr;
         if (ec == std::errc::result_out_of_range) {
@@ -285,6 +293,7 @@ public:
                 return negative_ ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
             return negative_ ? -0.0 : 0.0;
         }
+#endif
         return out;
     }
 
